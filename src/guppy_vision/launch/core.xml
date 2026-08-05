@@ -4,5 +4,6 @@
     <node pkg="guppy_vision" exec="pnp"/>
     <node pkg="guppy_vision" exec="slam"/>
     <node pkg="guppy_vision" exec="aprilrepub"/>
-    <node pkg="guppy_vision" exec="apriltag_detector.py"/>
+    <!-- <node pkg="guppy_vision" exec="apriltag_detector.py"/> -->
+    <node pkg="guppy_vision" exec="object_detection.py"/>
 </launch>

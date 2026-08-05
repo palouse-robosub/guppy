@@ -41,11 +41,10 @@ public:
     load_params_(&parameters); // load parameters from configuration file
 
     this->param_subscriber_ = std::make_shared<rclcpp::ParameterEventHandler>(this); // subscribe to parameter change event
-    
+
     // parameter callback to update parameters on event
 
     auto param_callback = [this](const rcl_interfaces::msg::ParameterEvent & parameter_event) {
-      RCLCPP_INFO(this->get_logger(), "Received parameter event from node for \"%s\"!", parameter_event.node.c_str());
       if (parameter_event.node != this->get_fully_qualified_name()) return; // quit if for another node
 
       auto controller_params = this->controller->get_param_struct(); // get copy of current parameters
@@ -55,10 +54,8 @@ public:
       bool update = false;
 
       for (const auto& param : parameter_event.changed_parameters) {
-        const std::string name = rclcpp::Parameter::from_parameter_msg(param).get_name();
+        const auto name = rclcpp::Parameter::from_parameter_msg(param).get_name();
         const auto value = rclcpp::Parameter::from_parameter_msg(param);
-
-        RCLCPP_INFO(this->get_logger(), "Parameter event received for '%s', ", parameter_event.node.c_str());
 
         // get entries (from maps below) with values of lambda/pointer based on the parameter name key
         auto pointer_it = param_map.find(name); // get pointer to parameter member in struct (pointer_it->second refers to value)
@@ -73,19 +70,19 @@ public:
 
           using P = std::remove_cv_t<std::remove_reference_t<decltype(*pointer)>>; // get type at pointer/reference and strip const/volatile
           using R = std::remove_cv_t<std::remove_reference_t<std::invoke_result_t<decltype(transformer), const rclcpp::Parameter&>>>; // final result of calling lambda transformer, ie. transformed type
-          
+
           if constexpr (std::is_same_v<P, R>) { // ensure transformed type and type at pointer are the same (so you don't set bad data)
             std::string before, after;
             before = printer_it->second(static_cast<const void*>(pointer)); // ignore type of pointer as you pass to printer to format for debugging
-          
+
             auto tmp = transformer(value); // store transformed value (from double vector to actual parameter type ie. Eigen::Matrix) based on parameter name
-          
+
             after = printer_it->second(static_cast<const void*>(&tmp)); // ignore type and format result for debugging
-          
+
             *pointer = std::move(tmp); // fast copy for vector
 
             update = true; // parameter struct is dirty and should be updated
-          
+
             RCLCPP_INFO(this->get_logger(), "Parameter '%s' changed (%s)->(%s)", name.c_str(), before.c_str(), after.c_str());
           }
         }, pointer_it->second, transformer_it->second); // pass values into visit, must belong to defined variants
@@ -117,7 +114,7 @@ public:
 
     auto timer_callback = [this]() -> void {
       auto thrusts = controller->get_motor_thrusts();
-      
+
       for (int i = 0; i < 8; i++) {
         std_msgs::msg::Float32 thrust;
         thrust.data = (double)thrusts[i];
@@ -148,7 +145,7 @@ public:
   void cmdvel_callback(geometry_msgs::msg::Twist::SharedPtr msg) {
     controller->update_desired_state(msg);
   }
-  
+
   void state_callback(guppy_msgs::msg::State::SharedPtr msg) {
       if (msg->state == guppy_msgs::msg::State::DISABLED) {
           this->thruster_interface->set_enabled(false);
@@ -196,10 +193,10 @@ private:
 
   // transform simple vector/double types into complex eigen types with a lambda, based on parameter name
   std::unordered_map<std::string, ParameterTypes> transformers = {
-    { 
+    {
       "motor_positions",
       std::function<Eigen::Matrix<double, 6, N_MOTORS>(const rclcpp::Parameter&)>(
-        [](const rclcpp::Parameter& value) {  
+        [](const rclcpp::Parameter& value) {
           return ControlChassis::to_motor_coefficients<N_MOTORS>(value.as_double_array());
         }
       )
@@ -212,7 +209,7 @@ private:
         }
       )
     },
-    { 
+    {
       "motor_upper_bounds",
       std::function<Eigen::Matrix<double, N_MOTORS, 1>(const rclcpp::Parameter&)>(
         [](const rclcpp::Parameter& value) {
@@ -220,7 +217,7 @@ private:
         }
       )
     },
-    { 
+    {
       "axis_weight_matrix",
       std::function<Eigen::Matrix<double, 6, 6>(const rclcpp::Parameter&)>(
         [](const rclcpp::Parameter& value) {
@@ -228,7 +225,7 @@ private:
         }
       )
     },
-    { 
+    {
       "pid_gains_vel_linear",
       std::function<std::vector<double>(const rclcpp::Parameter&)>(
         [](const rclcpp::Parameter& value) {
@@ -236,7 +233,7 @@ private:
         }
       )
     },
-    { 
+    {
       "pid_gains_vel_angular",
       std::function<std::vector<double>(const rclcpp::Parameter&)>(
         [](const rclcpp::Parameter& value) {
@@ -244,14 +241,14 @@ private:
         }
       )
     },
-    { 
+    {
       "pid_gains_pose_linear",
       std::function<std::vector<double>(const rclcpp::Parameter&)>(
         [](const rclcpp::Parameter& value) { return value.as_double_array();
         }
       )
     },
-    { 
+    {
       "pid_gains_pose_angular",
       std::function<std::vector<double>(const rclcpp::Parameter&)>(
         [](const rclcpp::Parameter& value) {
@@ -259,7 +256,7 @@ private:
         }
       )
     },
-    { 
+    {
       "pose_lock_deadband",
       std::function<Eigen::Matrix<double, 6, 1>(const rclcpp::Parameter&)>(
         [](const rclcpp::Parameter& value) {
@@ -267,7 +264,7 @@ private:
         }
       )
     },
-    { 
+    {
       "drag_coefficients",
       std::function<Eigen::Matrix<double, 6, 1>(const rclcpp::Parameter&)>(
         [](const rclcpp::Parameter& value) {
@@ -275,7 +272,7 @@ private:
         }
       )
     },
-    { 
+    {
       "drag_areas",
       std::function<Eigen::Matrix<double, 6, 1>(const rclcpp::Parameter&)>(
         [](const rclcpp::Parameter& value) {
@@ -283,7 +280,7 @@ private:
         }
       )
     },
-    { 
+    {
       "drag_effect_matrix",
       std::function<Eigen::Matrix<double, 6, 6>(const rclcpp::Parameter&)>(
         [](const rclcpp::Parameter& value) {
@@ -291,7 +288,7 @@ private:
         }
       )
     },
-    { 
+    {
       "water_density",
       std::function<double(const rclcpp::Parameter&)>(
         [](const rclcpp::Parameter& value) {
@@ -299,7 +296,7 @@ private:
         }
       )
     },
-    { 
+    {
       "robot_volume",
       std::function<double(const rclcpp::Parameter&)>(
         [](const rclcpp::Parameter& value) {
@@ -307,7 +304,7 @@ private:
         }
       )
     },
-    { 
+    {
       "robot_mass",
       std::function<double(const rclcpp::Parameter&)>(
         [](const rclcpp::Parameter& value) {
@@ -315,7 +312,7 @@ private:
         }
       )
     },
-    { 
+    {
       "center_of_buoyancy",
       std::function<Eigen::Matrix<double, 3, 1>(const rclcpp::Parameter&)>(
         [](const rclcpp::Parameter& value) {
@@ -323,7 +320,7 @@ private:
         }
       )
     },
-    { 
+    {
       "qp_epsilon",
       std::function<double(const rclcpp::Parameter&)>(
         [](const rclcpp::Parameter& value) {
@@ -332,7 +329,7 @@ private:
       )
     }
   };
-  
+
   // formatting for eigen matrices/vectors
   inline static const Eigen::IOFormat LineFormat = Eigen::IOFormat(3, 0, ", ", "\n", "[", "]");
   inline static const Eigen::IOFormat InlineFormat = Eigen::IOFormat(3, 0, ", ", "", "", "");
@@ -434,7 +431,7 @@ private:
     },
     {
       "robot_volume",
-      [](const void* pointer) { 
+      [](const void* pointer) {
         return std::to_string(*static_cast<const double*>(pointer));
       }
     },
@@ -451,7 +448,7 @@ private:
       }
     }
   };
-  
+
   T200Interface* thruster_interface;
   ChassisController* controller;
 
@@ -472,7 +469,7 @@ private:
       std::visit([&](auto* pointer, auto& transformer) {
         using P = std::remove_cv_t<std::remove_reference_t<decltype(*pointer)>>;
         using R = std::invoke_result_t<decltype(transformer), const rclcpp::Parameter&>;
-        
+
         if constexpr (std::is_same_v<P, R>)
           *pointer = transformer(param);
       }, pointer_to, transformer_it->second);
@@ -482,7 +479,7 @@ private:
   // print current values of a parameter struct
   void print_params_struct_(ChassisController::ChassisControllerParams* params) {
     auto param_map = get_param_map(params); // get pointers to parameter struct members by parameter name
-    
+
     for (auto& [name, pointer_to] : param_map) {
       const auto printer_it = printers.find(name);
 
@@ -490,7 +487,7 @@ private:
         RCLCPP_WARN(this->get_logger(), "No printer registered for '%s', skipping.", name.c_str());
         continue;
       }
-      
+
       std::string rendered;
       std::visit(
         [&](auto* pointer) {

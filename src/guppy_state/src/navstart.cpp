@@ -43,17 +43,17 @@ class NavStart : public rclcpp::Node {
                 stateclient->async_send_request(request);
                 was_nav = false;
             } else if (navon && !was_nav) {
-                // auto request = std::make_shared<guppy_msgs::srv::ChangeState::Request>();
-                // guppy_msgs::msg::State state;
-                // state.state = guppy_msgs::msg::State::NAV;
-                // request->new_state = state;
-                // stateclient->async_send_request(request);
+                auto request = std::make_shared<guppy_msgs::srv::ChangeState::Request>();
+                guppy_msgs::msg::State state;
+                state.state = guppy_msgs::msg::State::NAV;
+                request->new_state = state;
+                stateclient->async_send_request(request);
                 was_nav = true;
 
-                std::thread t([](){
-                    system("/home/robosub/guppy/util/bin/prequal");
-                });
-                t.detach();
+                // std::thread t([](){
+                //     system("/home/robosub/guppy/util/bin/prequal");
+                // });
+                // t.detach();
                 
             }
         }

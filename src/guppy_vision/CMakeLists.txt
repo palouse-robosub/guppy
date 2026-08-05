@@ -66,6 +66,7 @@ ament_python_install_package(${PROJECT_NAME})
 # Install Python executables
 install(PROGRAMS
   ${PROJECT_NAME}/apriltag_detector.py
+  ${PROJECT_NAME}/object_detection.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

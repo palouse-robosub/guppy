@@ -41,7 +41,7 @@ class FlirPublisher : public rclcpp::Node {
               break;
           }
       }
-      std::string topic = "/cam/" + pos + "/raw";
+      std::string topic = "/cam/" + pos;
       this->pubs_.push_back(image_transport::create_publisher(this, topic));
       // this->publishers_.push_back(this->create_publisher<sensor_msgs::msg::Image>(topic, 1));
       this->threads_.emplace_back(&FlirPublisher::acquireFootage, this, i);

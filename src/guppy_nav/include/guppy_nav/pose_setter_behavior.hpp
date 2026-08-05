@@ -6,7 +6,10 @@
 
 class NavigateBehavior: public BT::RosActionNode<guppy_msgs::action::Navigate> {
 public:
-    NavigateBehavior(const std::string& name, const BT::NodeConfig& conf, const BT::RosNodeParams& params) : BT::RosActionNode<guppy_msgs::action::Navigate>(name, conf, params) {}
+    NavigateBehavior(const std::string& name, const BT::NodeConfig& conf, const BT::RosNodeParams& params)
+    : BT::RosActionNode<guppy_msgs::action::Navigate>(name, conf, params) {
+        RCLCPP_INFO(logger(), "PoseSetter behavior initialized.");
+    }
 
     static BT::PortsList providedPorts() {
         return providedBasicPorts({
@@ -31,18 +34,18 @@ public:
     }
 
     BT::NodeStatus onResultReceived(const WrappedResult& wrapped) override {
-        // should do?
+        RCLCPP_INFO(logger(), "PoseSetter action server returned results. %s reach target, with perror (%lf, %lf, %lf) qerror (%lf, %lf, %lf, %lf)", wrapped.result->target_reached ? "DID" : "DID NOT", wrapped.result->error.position.x, wrapped.result->error.position.y, wrapped.result->error.position.z, wrapped.result->error.orientation.w, wrapped.result->error.orientation.x, wrapped.result->error.orientation.y, wrapped.result->error.orientation.z);
         return BT::NodeStatus::SUCCESS;
     }
 
     virtual BT::NodeStatus onFailure(BT::ActionNodeErrorCode error) override {
-        bool continueOnTimeout = false;
+        bool continueOnTimeout;
         getInput("continueOnTimeout", continueOnTimeout);
         if (continueOnTimeout) {
-            RCLCPP_INFO(logger(), "navigate action aborted, continuing...");
+            RCLCPP_INFO(logger(), "PoseSetter action server returned %s, continuing.", BT::toStr(error));
             return BT::NodeStatus::SUCCESS;
         } else {
-            RCLCPP_ERROR(logger(), "pose setter treenode error... %s", BT::toStr(error));
+            RCLCPP_ERROR(logger(), "PoseSetter action server return %s. Node status failing.", BT::toStr(error));
             return BT::NodeStatus::FAILURE;
         }
     }

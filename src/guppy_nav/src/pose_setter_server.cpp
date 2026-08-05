@@ -1,7 +1,6 @@
+#include <cmath>
 #include <memory>
-#include <mutex>
 #include <thread>
-#include <vector>
 
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp/executors/multi_threaded_executor.hpp>
@@ -13,13 +12,11 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
-#include "guppy_nav/trajectory.hpp"
-
 #include "guppy_msgs/action/navigate.hpp"
 #include "guppy_msgs/msg/state.hpp"
 #include "guppy_msgs/srv/set_hold_pose.hpp"
+
 #include "geometry_msgs/msg/pose.hpp"
-#include "geometry_msgs/msg/twist.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 
 #define SETPOINTS_EVERY 0.3 // meters
@@ -27,25 +24,26 @@
 class PoseSetterServer : public rclcpp::Node {
 public:
     explicit PoseSetterServer(const rclcpp::NodeOptions& options = rclcpp::NodeOptions()) : Node("pose_setter", options) {
-        auto handleGoal = [this](const rclcpp_action::GoalUUID& _, std::shared_ptr<const guppy_msgs::action::Navigate::Goal> goal) {
-            RCLCPP_INFO(this->get_logger(), "goal request with pose and relative set to %d", goal->local); //goal->pose
+        auto handleGoal = [this](const rclcpp_action::GoalUUID& id, std::shared_ptr<const guppy_msgs::action::Navigate::Goal> goal) {
+            RCLCPP_INFO(this->get_logger(), "Goal %s requested at (%.2lf, %.1lf, %lf)(%.2lf, %.2lf, %.2lf, %.2lf) %s with %lf timeout.", rclcpp_action::to_string(id).c_str(), goal->pose.position.x, goal->pose.position.y, goal->pose.position.z, goal->pose.orientation.w, goal->pose.orientation.x, goal->pose.orientation.y, goal->pose.orientation.z, goal->local ? "LOCAL" : "ABSOLUTE", goal->timeout);
 
             if (_state == guppy_msgs::msg::State::NAV) {
                 _cancel = false;
                 return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
             }
 
-            RCLCPP_INFO(this->get_logger(), "rejecting request because not in nav"); //goal->pose
+            RCLCPP_INFO(this->get_logger(), "Rejecting request because state not NAV."); //goal->pose
             return rclcpp_action::GoalResponse::REJECT;
         };
 
         auto handleCancel = [this](const std::shared_ptr<rclcpp_action::ServerGoalHandle<guppy_msgs::action::Navigate>> goalHandle) {
-            RCLCPP_INFO(this->get_logger(), "request to cancel goal");
+            RCLCPP_INFO(this->get_logger(), "Request to cancel goal %s.", rclcpp_action::to_string(goalHandle->get_goal_id()).c_str());
             this->_cancel = true;
             return rclcpp_action::CancelResponse::ACCEPT;
         };
 
         auto handleAccepted = [this](const std::shared_ptr<rclcpp_action::ServerGoalHandle<guppy_msgs::action::Navigate>> goalHandle) {
+            RCLCPP_INFO(this->get_logger(), "Accepted goal %s.", rclcpp_action::to_string(goalHandle->get_goal_id()).c_str());
             std::thread{[this, goalHandle]() {
                 execute(goalHandle);
             }}.detach();
@@ -165,10 +163,14 @@ private:
             error = pos_list[setpoint_index] - _current_pos;
             qerror = Eigen::Quaterniond(1.0, 0.0, 0.0, 0.0);
 
+            auto qdistance = _current_quat.inverse() * quat_list[setpoint_index];
+            auto qangle = 2 * atan2(qdistance.vec().norm(), qdistance.w());
+
             if (
                 abs(error.x()) <= tolerance_list[setpoint_index] &&
                 abs(error.y()) <= tolerance_list[setpoint_index] &&
-                abs(error.z()) <= tolerance_list[setpoint_index]
+                abs(error.z()) <= tolerance_list[setpoint_index] &&
+                abs(qangle) <= M_PI / 36 // 10 degrees
             ) {
                 setpoint_index++;
                 if (setpoint_index == n_steps) {

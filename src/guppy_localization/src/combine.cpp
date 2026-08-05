@@ -54,36 +54,57 @@ void baro_callback(geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg)
     publish_transform();    
   }
 
-  void dvl_callback(nav_msgs::msg::Odometry::SharedPtr msg) {
-    Eigen::Vector3d axis_vector(0.0, 1.0, 0.0);
-    Eigen::AngleAxisd angle_axis(M_PI, axis_vector);
-    Eigen::Quaterniond quat(angle_axis);
+  void dvl_callback(nav_msgs::msg::Odometry::SharedPtr msg)
+{
+    // Rotate DVL frame -> body frame (your existing transform)
+    Eigen::Quaterniond q_dvl_to_body(Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitY()));
 
-    Eigen::Vector3d position(msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z);
-    Eigen::Vector3d twist(msg->twist.twist.linear.x, msg->twist.twist.linear.y, msg->twist.twist.linear.z);
+    Eigen::Vector3d position(msg->pose.pose.position.x,
+                             msg->pose.pose.position.y,
+                             msg->pose.pose.position.z);
 
-    position = quat * position;
-    twist = quat * twist;
+    Eigen::Vector3d twist(msg->twist.twist.linear.x,
+                          msg->twist.twist.linear.y,
+                          msg->twist.twist.linear.z);
 
-    odom.pose.pose.position.x = position[0] - initial_pose.x;
-    odom.pose.pose.position.y = position[1] - initial_pose.y;
-    // odom.pose.pose.position.z = position[2];
+    position = q_dvl_to_body * position;
+    twist    = q_dvl_to_body * twist;
 
-    double rx = 0.2;
-    double ry = 0.0;
-    double rz = -0.125;
-    double wx = odom.twist.twist.angular.x;
-    double wy = odom.twist.twist.angular.y;
-    double wz = odom.twist.twist.angular.z;
+    // DVL location relative to vehicle origin (body frame)
+    Eigen::Vector3d r_body(0.2, 0.0, -0.125);
 
-    odom.twist.twist.linear.x = twist[0] - (wy*rz - wz*ry);
-    odom.twist.twist.linear.y = twist[1] - (wz*rx - wx*rz);
-    odom.twist.twist.linear.z = twist[2] - (wx*ry - wy*rx);
+    // Current vehicle orientation (replace with your IMU orientation)
+    Eigen::Quaterniond q_world_body(
+        odom.pose.pose.orientation.w,
+        odom.pose.pose.orientation.x,
+        odom.pose.pose.orientation.y,
+        odom.pose.pose.orientation.z);
+
+    // Rotate lever arm into world frame
+    Eigen::Vector3d r_world = q_world_body * r_body;
+
+    // Correct position to vehicle origin
+    Eigen::Vector3d corrected_position = position - r_world;
+
+    odom.pose.pose.position.x = corrected_position.x() - initial_pose.x;
+    odom.pose.pose.position.y = corrected_position.y() - initial_pose.y;
+    odom.pose.pose.position.z = corrected_position.z() - initial_pose.z;
+
+    // Lever arm velocity correction
+    Eigen::Vector3d omega(
+        odom.twist.twist.angular.x,
+        odom.twist.twist.angular.y,
+        odom.twist.twist.angular.z);
+
+    Eigen::Vector3d corrected_twist = twist - omega.cross(r_body);
+
+    odom.twist.twist.linear.x = corrected_twist.x();
+    odom.twist.twist.linear.y = corrected_twist.y();
+    odom.twist.twist.linear.z = corrected_twist.z();
 
     odom_pub_->publish(odom);
-
-    publish_transform();    
-  }
+    publish_transform();
+}
 
   void imu_callback(sensor_msgs::msg::Imu::SharedPtr msg) {
     Eigen::Vector3d axis_vector(0.0, 0.0, 1.0);

@@ -7,8 +7,9 @@ class ChangeStateBehavior : public BT::RosServiceNode<guppy_msgs::srv::ChangeSta
 {
 public:
     ChangeStateBehavior(const std::string& name, const BT::NodeConfig& conf, const BT::RosNodeParams& params)
-    : RosServiceNode<guppy_msgs::srv::ChangeState>(name, conf, params)
-    {}
+    : RosServiceNode<guppy_msgs::srv::ChangeState>(name, conf, params) {
+        RCLCPP_INFO(logger(), "ChangeState behavior initialized.");
+    }
 
     static BT::PortsList providedPorts()
     {
@@ -21,14 +22,15 @@ public:
     {
         getInput("state", request->new_state.state);
 
-        RCLCPP_DEBUG(logger(), "Request to change State");
+        RCLCPP_INFO(logger(), "Requesting state change to '%u'.", static_cast<unsigned int>(request->new_state.state));
 
         return true;
     }
 
     BT::NodeStatus onResponseReceived(const Response::SharedPtr& response) override
     {
-        RCLCPP_DEBUG(logger(), "ChangeStateNode success");
+        RCLCPP_INFO(logger(), "%s response received from ChangeState action server.", response->success ? "OK" : "BAD");
+
         return BT::NodeStatus::SUCCESS;
     }
 };

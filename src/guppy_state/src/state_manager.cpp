@@ -46,7 +46,6 @@ class StateManager : public rclcpp::Node {
 
             static const geometry_msgs::msg::Twist zero_twist;
         }
-
     private:
         void estopcallback(guppy_msgs::msg::CanFrame msg) {
             int is_estopped = 0;
@@ -59,6 +58,18 @@ class StateManager : public rclcpp::Node {
             //     this->publish_state(guppy_msgs::msg::State::DISABLED);
             //     was_estopped = false;
             // }
+        }
+
+        static std::string to_string(uint8_t state) {
+            switch (state) {
+                case guppy_msgs::msg::State::STARTUP:  return "STARTUP";  break;
+                case guppy_msgs::msg::State::HOLDING:  return "HOLDING";  break;
+                case guppy_msgs::msg::State::NAV:      return "NAV";      break;
+                case guppy_msgs::msg::State::TASK:     return "TASK";     break;
+                case guppy_msgs::msg::State::TELEOP:   return "TELEOP";   break;
+                case guppy_msgs::msg::State::DISABLED: return "DISABLED"; break;
+                case guppy_msgs::msg::State::FAULT:    return  "FAULT";    break;
+            }
         }
 
          bool is_valid_state(uint8_t state) {
@@ -80,34 +91,42 @@ class StateManager : public rclcpp::Node {
             const std::shared_ptr<guppy_msgs::srv::ChangeState::Request> request,
             std::shared_ptr<guppy_msgs::srv::ChangeState::Response> response
         ) {
-            RCLCPP_DEBUG(rclcpp::get_logger("rclcpp"), "State transition request...");
+            RCLCPP_INFO(get_logger(), "State transition to %s requested.", to_string(request->new_state.state).c_str());
 
-            if (request->new_state.state == this->current_state_) {
-                RCLCPP_ERROR(this->get_logger(), "Already in state!");
+            auto new_state = request->new_state.state;
+
+            if (new_state == this->current_state_) {
+                RCLCPP_WARN(this->get_logger(), "Already in state %s!", to_string(current_state_).c_str());
                 response->success = false;
                 return;
             }
 
-            if (!is_valid_state(request->new_state.state)) {
+            if (!is_valid_state(new_state)) {
                 RCLCPP_ERROR(this->get_logger(), "Invalid state passed in transition service!");
                 response->success = false;
                 return;
             }
 
             if (this->current_state_ == guppy_msgs::msg::State::FAULT) {
-                RCLCPP_ERROR(this->get_logger(), "You can't exit the fault state!"); // TODO fix loggers!
+                RCLCPP_WARN(this->get_logger(), "You can't exit the FAULT state!");
                 response->success = false;
                 return;
             }
 
-            if (request->new_state.state == guppy_msgs::msg::State::HOLDING) {
+            if (new_state == guppy_msgs::msg::State::HOLDING) {
+                RCLCPP_ERROR(this->get_logger(), "Resting pose for holding.");
                 auto request = std::make_shared<std_srvs::srv::Empty::Request>();
                 resetholdpose->async_send_request(request);
             }
 
             // TODO switch logic should be handled here NOT in StateManager#publishState()
 
-            response->success = this->publish_state(request->new_state.state);
+            auto stale_state = current_state_;
+
+            response->success = this->publish_state(new_state);
+
+            if (response->success) RCLCPP_INFO(this->get_logger(), "Transitioning state from %s -> %s.", to_string(stale_state).c_str(), to_string(new_state).c_str());
+            else RCLCPP_ERROR(get_logger(), "Failed to publish state transition from %s -> %s.", to_string(stale_state).c_str(), to_string(new_state).c_str());
         }
 
         bool publish_state(uint8_t state) {
@@ -121,13 +140,13 @@ class StateManager : public rclcpp::Node {
 
         void on_timer() {
             switch (this->current_state_) {
-                case guppy_msgs::msg::State::STARTUP:    this->handle_startup();     break;
-                case guppy_msgs::msg::State::HOLDING:    this->handle_holding();     break;
-                case guppy_msgs::msg::State::NAV:        this->handle_nav();         break;
-                case guppy_msgs::msg::State::TASK:       this->handle_task();        break;
-                case guppy_msgs::msg::State::TELEOP:     this->handle_teleop();      break;
-                case guppy_msgs::msg::State::DISABLED:   this->handle_disabled();    break;
-                case guppy_msgs::msg::State::FAULT:      this->handle_fault();       break;
+                case guppy_msgs::msg::State::STARTUP:  this->handle_startup();  break;
+                case guppy_msgs::msg::State::HOLDING:  this->handle_holding();  break;
+                case guppy_msgs::msg::State::NAV:      this->handle_nav();      break;
+                case guppy_msgs::msg::State::TASK:     this->handle_task();     break;
+                case guppy_msgs::msg::State::TELEOP:   this->handle_teleop();   break;
+                case guppy_msgs::msg::State::DISABLED: this->handle_disabled(); break;
+                case guppy_msgs::msg::State::FAULT:    this->handle_fault();    break;
             }
         }
 
@@ -203,10 +222,7 @@ int main(int argc, char* argv[]) {
 
     auto publisher_node = std::make_shared<StateManager>();
 
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "State transition server ready.");
-
     rclcpp::spin(publisher_node);
-
 
     rclcpp::shutdown();
 
