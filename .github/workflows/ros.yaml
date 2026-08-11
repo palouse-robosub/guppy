@@ -28,22 +28,22 @@ jobs:
                 - 'flake.lock'
                 - '.github/workflows/**'
 
-  flake-check:
-    needs: changes
-    if: needs.changes.outputs.code == 'true'
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Checkout guppy
-        uses: actions/checkout@v4
+  # flake-check:
+  #   needs: changes
+  #   if: needs.changes.outputs.code == 'true'
+  #   runs-on: ubuntu-24.04
+  #   steps:
+  #     - name: Checkout guppy
+  #       uses: actions/checkout@v4
 
-      - name: Install Determinate Nix
-        uses: DeterminateSystems/nix-installer-action@main
+  #     - name: Install Determinate Nix
+  #       uses: DeterminateSystems/nix-installer-action@main
 
-      - name: Cache Nix Store
-        uses: DeterminateSystems/magic-nix-cache-action@main
+  #     - name: Cache Nix Store
+  #       uses: DeterminateSystems/magic-nix-cache-action@main
         
-      - name: Check Nix Flake Validity
-        run: nix flake check
+  #     - name: Check Nix Flake Validity
+  #       run: nix flake check
 
   build_and_test_ros2:
     needs: [changes, flake-check]
@@ -61,5 +61,8 @@ jobs:
       - name: Cache Nix Store
         uses: DeterminateSystems/magic-nix-cache-action@main
 
+      - name: Check Nix Flake
+        uses: DeterminateSystems/flake-checker-action@main
+
       - name: Build and run tests
-        run: nix develop --command bash -c "./.github/workflows/diff_and_build.sh"
+        run: nix develop --accept-flake-config --command bash -c "./.github/workflows/diff_and_build.sh"
