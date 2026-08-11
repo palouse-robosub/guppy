@@ -28,23 +28,6 @@ jobs:
                 - 'flake.lock'
                 - '.github/workflows/**'
 
-  # flake-check:
-  #   needs: changes
-  #   if: needs.changes.outputs.code == 'true'
-  #   runs-on: ubuntu-24.04
-  #   steps:
-  #     - name: Checkout guppy
-  #       uses: actions/checkout@v4
-
-  #     - name: Install Determinate Nix
-  #       uses: DeterminateSystems/nix-installer-action@main
-
-  #     - name: Cache Nix Store
-  #       uses: DeterminateSystems/magic-nix-cache-action@main
-        
-  #     - name: Check Nix Flake Validity
-  #       run: nix flake check
-
   build_and_test_ros2:
     needs: changes
     if: needs.changes.outputs.code == 'true'
@@ -54,6 +37,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 2
+          submodules: recursive
 
       - name: Install Determinate Nix
         uses: DeterminateSystems/nix-installer-action@main
