@@ -46,7 +46,7 @@ jobs:
   #       run: nix flake check
 
   build_and_test_ros2:
-    needs: [changes, flake-check]
+    needs: changes
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-24.04
     steps:
