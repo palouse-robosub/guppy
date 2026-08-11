@@ -6,7 +6,8 @@ ASSETS_OUTPUT = files("guppy_teleop.frontend").joinpath("rc_assets.py")
 
 # builds assets
 def rcc_main():
-    result = subprocess.run(["pyside6-rcc", "--output", ASSETS_PATH, "-o", ASSETS_OUTPUT])
+    #result = subprocess.run(["pyside6-rcc", "--output", ASSETS_PATH, "-o", ASSETS_OUTPUT])
+    result = subprocess.run(["rcc", "-g", "python", ASSETS_PATH, "-o", ASSETS_OUTPUT])
 
     print(f"resource build exited with code {result.returncode}")
 

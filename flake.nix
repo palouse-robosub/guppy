@@ -2,14 +2,18 @@
   inputs = {
     nix-ros-overlay.url = "github:lopsided98/nix-ros-overlay/master";
     nixpkgs.follows = "nix-ros-overlay/nixpkgs";  # IMPORTANT!!!
+
+    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
   };
-  outputs = { self, nix-ros-overlay, nixpkgs }:
+  outputs = { self, nix-ros-overlay, nixpkgs, nixpkgs-unstable }:
     nix-ros-overlay.inputs.flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs {
           inherit system;
           overlays = [ nix-ros-overlay.overlays.default ];
         };
+
+	unstable = import nixpkgs-unstable { inherit system; };
       in {
         devShells.default = pkgs.mkShell {
           name = "guppy_ros";
@@ -24,12 +28,12 @@
             # deps
             pkgs.proxsuite
 
-            (pkgs.python3.withPackages (ps: with ps; [
+            (unstable.python3.withPackages (ps: with ps; [
               pygame
               pip
               pyside6
             ]))
-            
+
             # extra
             pkgs.fastfetch
             pkgs.can-utils
