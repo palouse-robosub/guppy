@@ -2,18 +2,64 @@ name: ROS2 Jazzy CI
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    branches: [ "**" ]
 
 jobs:
-  build_and_test_ros2:
-    runs-on: ubuntu-latest
-    container:
-      image: rostooling/setup-ros-docker:ubuntu-noble-latest
+  changes:
+      runs-on: ubuntu-24.04
+      outputs:
+        code: ${{ steps.filter.outputs.code }}
+      steps:
+        - name: Checkout guppy 
+          uses: actions/checkout@v4
+
+        - name: Filter for code changes
+          uses: dorny/paths-filter@v3
+          id: filter
+          with:
+            filters: |
+              code:
+                - '**/*.cpp'
+                - '**/*.hpp'
+                - '**/*.py'
+                - '**/CMakeLists.txt'
+                - '**/package.xml'
+                - 'flake.nix'
+                - 'flake.lock'
+                - '.github/workflows/**'
+
+  flake-check:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-24.04
     steps:
-      - name: Build and run tests
-        uses: ros-tooling/action-ros-ci@v0.4
+      - name: Checkout guppy
+        uses: actions/checkout@v4
+
+      - name: Install Determinate Nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Cache Nix Store
+        uses: DeterminateSystems/magic-nix-cache-action@main
+        
+      - name: Check Nix Flake Validity
+        run: nix flake check
+
+  build_and_test_ros2:
+    needs: [changes, flake-check]
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout guppy
+        uses: actions/checkout@v4
         with:
-          package-name: guppy
-          target-ros2-distro: jazzy
+          fetch-depth: 2
+
+      - name: Install Determinate Nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Cache Nix Store
+        uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Build and run tests
+        run: nix develop --command bash -c "./.github/workflows/diff_and_build.sh"
