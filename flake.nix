@@ -3,8 +3,7 @@
     nix-ros-overlay.url = "github:lopsided98/nix-ros-overlay/master";
     nixpkgs.follows = "nix-ros-overlay/nixpkgs";  # IMPORTANT!!!
 
-    #nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
-    nixpkgs-unstable.url = "https://github.com/NixOS/nixpkgs/archive/refs/heads/nixos-unstable.tar.gz";
+    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
   };
   outputs = { self, nix-ros-overlay, nixpkgs, nixpkgs-unstable }:
     nix-ros-overlay.inputs.flake-utils.lib.eachDefaultSystem (system:
@@ -14,7 +13,7 @@
           overlays = [ nix-ros-overlay.overlays.default ];
         };
 
-        unstable = import nixpkgs-unstable { inherit system; };
+	unstable = import nixpkgs-unstable { inherit system; };
       in {
         devShells.default = pkgs.mkShell {
           name = "guppy_ros";
