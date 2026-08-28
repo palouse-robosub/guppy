@@ -34,11 +34,7 @@ class CanRx : public rclcpp::Node {
         return;
       }
 
-      RCLCPP_INFO(
-          this->get_logger(),
-          "cb: Received an update to parameter \"%s\" of type %s: \"%s\"",
-          p.get_name().c_str(), p.get_type_name().c_str(),
-          p.as_string().c_str());
+      RCLCPP_INFO(this->get_logger(), "cb: Received an update to parameter \"%s\" of type %s: \"%s\"", p.get_name().c_str(), p.get_type_name().c_str(), p.as_string().c_str());
     };
     cb_handle_ = param_subscriber_->add_parameter_callback("interface", cb);
     running_.store(true);
@@ -57,8 +53,7 @@ class CanRx : public rclcpp::Node {
   int sock_ = -1;
   int ids_[MAX_PUBLISHERS] = {0};
   rclcpp::TimerBase::SharedPtr timer_;
-  rclcpp::Publisher<guppy_msgs::msg::CanFrame>::SharedPtr
-      publishers_[MAX_PUBLISHERS];
+  rclcpp::Publisher<guppy_msgs::msg::CanFrame>::SharedPtr publishers_[MAX_PUBLISHERS];
   std::thread can_thread_;
   std::atomic<bool> running_{false};
 
@@ -124,10 +119,8 @@ class CanRx : public rclcpp::Node {
         const std::string id_str = int_to_hex_str(id);
         const std::string base = "/can/id_0x";
         const std::string topic_str = base + id_str;
-        publishers_[i] =
-            this->create_publisher<guppy_msgs::msg::CanFrame>(topic_str, 10);
-        RCLCPP_INFO(this->get_logger(), "created publisher %s\r\n",
-                    topic_str.c_str());
+        publishers_[i] = this->create_publisher<guppy_msgs::msg::CanFrame>(topic_str, 10);
+        RCLCPP_INFO(this->get_logger(), "created publisher %s\r\n", topic_str.c_str());
         return i;
       }
     }
@@ -164,9 +157,7 @@ class CanRx : public rclcpp::Node {
         if (idx != -1) {
           publish_bytes(idx, frame.data, frame.can_dlc);
         } else {
-          RCLCPP_ERROR(this->get_logger(),
-                       "Failed to create publisher for CAN ID %x",
-                       frame.can_id);
+          RCLCPP_ERROR(this->get_logger(), "Failed to create publisher for CAN ID %x", frame.can_id);
         }
       }
     }

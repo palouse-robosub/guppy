@@ -9,13 +9,9 @@
 class LEDStatePublisher : public rclcpp::Node {
  public:
   LEDStatePublisher() : Node("led_pub") {
-    auto topic_callback =
-        [this](guppy_msgs::msg::State::UniquePtr msg) -> void {
-      current_state = msg->state;
-    };
+    auto topic_callback = [this](guppy_msgs::msg::State::UniquePtr msg) -> void { current_state = msg->state; };
 
-    subscription_ = this->create_subscription<guppy_msgs::msg::State>(
-        "state", 10, topic_callback);
+    subscription_ = this->create_subscription<guppy_msgs::msg::State>("state", 10, topic_callback);
     client_ = this->create_client<guppy_msgs::srv::SendCan>("can_tx");
 
     timer = this->create_wall_timer(std::chrono::milliseconds(100), [this]() {

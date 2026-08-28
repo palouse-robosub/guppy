@@ -23,79 +23,47 @@
 
 class PoseSetterServer : public rclcpp::Node {
  public:
-  explicit PoseSetterServer(
-      const rclcpp::NodeOptions& options = rclcpp::NodeOptions())
-      : Node("pose_setter", options) {
-    auto handleGoal =
-        [this](const rclcpp_action::GoalUUID& id,
-               std::shared_ptr<const guppy_msgs::action::Navigate::Goal> goal) {
-          RCLCPP_INFO(this->get_logger(),
-                      "Goal %s requested at (%.2lf, %.1lf, %lf)(%.2lf, %.2lf, "
-                      "%.2lf, %.2lf) %s with %lf timeout.",
-                      rclcpp_action::to_string(id).c_str(),
-                      goal->pose.position.x, goal->pose.position.y,
-                      goal->pose.position.z, goal->pose.orientation.w,
-                      goal->pose.orientation.x, goal->pose.orientation.y,
-                      goal->pose.orientation.z,
-                      goal->local ? "LOCAL" : "ABSOLUTE", goal->timeout);
+  explicit PoseSetterServer(const rclcpp::NodeOptions& options = rclcpp::NodeOptions()) : Node("pose_setter", options) {
+    auto handleGoal = [this](const rclcpp_action::GoalUUID& id, std::shared_ptr<const guppy_msgs::action::Navigate::Goal> goal) {
+      RCLCPP_INFO(this->get_logger(),
+                  "Goal %s requested at (%.2lf, %.1lf, %lf)(%.2lf, %.2lf, "
+                  "%.2lf, %.2lf) %s with %lf timeout.",
+                  rclcpp_action::to_string(id).c_str(), goal->pose.position.x, goal->pose.position.y, goal->pose.position.z, goal->pose.orientation.w, goal->pose.orientation.x,
+                  goal->pose.orientation.y, goal->pose.orientation.z, goal->local ? "LOCAL" : "ABSOLUTE", goal->timeout);
 
-          if (_state == guppy_msgs::msg::State::NAV) {
-            _cancel = false;
-            return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
-          }
+      if (_state == guppy_msgs::msg::State::NAV) {
+        _cancel = false;
+        return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
+      }
 
-          RCLCPP_INFO(
-              this->get_logger(),
-              "Rejecting request because state not NAV.");  // goal->pose
-          return rclcpp_action::GoalResponse::REJECT;
-        };
+      RCLCPP_INFO(this->get_logger(),
+                  "Rejecting request because state not NAV.");  // goal->pose
+      return rclcpp_action::GoalResponse::REJECT;
+    };
 
-    auto handleCancel =
-        [this](const std::shared_ptr<rclcpp_action::ServerGoalHandle<
-                   guppy_msgs::action::Navigate>> goalHandle) {
-          RCLCPP_INFO(
-              this->get_logger(), "Request to cancel goal %s.",
-              rclcpp_action::to_string(goalHandle->get_goal_id()).c_str());
-          this->_cancel = true;
-          return rclcpp_action::CancelResponse::ACCEPT;
-        };
+    auto handleCancel = [this](const std::shared_ptr<rclcpp_action::ServerGoalHandle<guppy_msgs::action::Navigate>> goalHandle) {
+      RCLCPP_INFO(this->get_logger(), "Request to cancel goal %s.", rclcpp_action::to_string(goalHandle->get_goal_id()).c_str());
+      this->_cancel = true;
+      return rclcpp_action::CancelResponse::ACCEPT;
+    };
 
-    auto handleAccepted =
-        [this](const std::shared_ptr<rclcpp_action::ServerGoalHandle<
-                   guppy_msgs::action::Navigate>> goalHandle) {
-          RCLCPP_INFO(
-              this->get_logger(), "Accepted goal %s.",
-              rclcpp_action::to_string(goalHandle->get_goal_id()).c_str());
-          std::thread{[this, goalHandle]() { execute(goalHandle); }}.detach();
-        };
+    auto handleAccepted = [this](const std::shared_ptr<rclcpp_action::ServerGoalHandle<guppy_msgs::action::Navigate>> goalHandle) {
+      RCLCPP_INFO(this->get_logger(), "Accepted goal %s.", rclcpp_action::to_string(goalHandle->get_goal_id()).c_str());
+      std::thread{[this, goalHandle]() { execute(goalHandle); }}.detach();
+    };
 
-    _actionServer = rclcpp_action::create_server<guppy_msgs::action::Navigate>(
-        this, "/navigate", handleGoal, handleCancel, handleAccepted,
-        rcl_action_server_get_default_options());
-    _setter =
-        this->create_client<guppy_msgs::srv::SetHoldPose>("reset_holding_pose");
-    _odomSubscription = this->create_subscription<nav_msgs::msg::Odometry>(
-        "/odometry/filtered", 10,
-        std::bind(&PoseSetterServer::odometryCallback, this,
-                  std::placeholders::_1));
-    _stateSubscription = this->create_subscription<guppy_msgs::msg::State>(
-        "/state", 10,
-        std::bind(&PoseSetterServer::stateCallback, this,
-                  std::placeholders::_1));
+    _actionServer = rclcpp_action::create_server<guppy_msgs::action::Navigate>(this, "/navigate", handleGoal, handleCancel, handleAccepted, rcl_action_server_get_default_options());
+    _setter = this->create_client<guppy_msgs::srv::SetHoldPose>("reset_holding_pose");
+    _odomSubscription = this->create_subscription<nav_msgs::msg::Odometry>("/odometry/filtered", 10, std::bind(&PoseSetterServer::odometryCallback, this, std::placeholders::_1));
+    _stateSubscription = this->create_subscription<guppy_msgs::msg::State>("/state", 10, std::bind(&PoseSetterServer::stateCallback, this, std::placeholders::_1));
   }
 
   void odometryCallback(nav_msgs::msg::Odometry::SharedPtr msg) {
-    _current_pos =
-        Eigen::Vector3d(msg->pose.pose.position.x, msg->pose.pose.position.y,
-                        msg->pose.pose.position.z);
-    _current_quat = Eigen::Quaterniond(
-        msg->pose.pose.orientation.w, msg->pose.pose.orientation.x,
-        msg->pose.pose.orientation.y, msg->pose.pose.orientation.z);
+    _current_pos = Eigen::Vector3d(msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z);
+    _current_quat = Eigen::Quaterniond(msg->pose.pose.orientation.w, msg->pose.pose.orientation.x, msg->pose.pose.orientation.y, msg->pose.pose.orientation.z);
   }
 
-  void stateCallback(guppy_msgs::msg::State::SharedPtr msg) {
-    _state = msg->state;
-  }
+  void stateCallback(guppy_msgs::msg::State::SharedPtr msg) { _state = msg->state; }
 
  private:
   rclcpp_action::Server<guppy_msgs::action::Navigate>::SharedPtr _actionServer;
@@ -108,8 +76,7 @@ class PoseSetterServer : public rclcpp::Node {
   int _state = 0;
   bool _cancel = false;
 
-  geometry_msgs::msg::Pose pose_from_vec_quat(Eigen::Vector3d vec,
-                                              Eigen::Quaterniond quat) {
+  geometry_msgs::msg::Pose pose_from_vec_quat(Eigen::Vector3d vec, Eigen::Quaterniond quat) {
     geometry_msgs::msg::Pose out;
     out.orientation.w = quat.w();
     out.orientation.x = quat.x();
@@ -121,9 +88,7 @@ class PoseSetterServer : public rclcpp::Node {
     return out;
   }
 
-  geometry_msgs::msg::Pose get_current_pose() {
-    return pose_from_vec_quat(_current_pos, _current_quat);
-  }
+  geometry_msgs::msg::Pose get_current_pose() { return pose_from_vec_quat(_current_pos, _current_quat); }
 
   void set_to(Eigen::Vector3d vec, Eigen::Quaterniond quat) {
     auto request = std::make_shared<guppy_msgs::srv::SetHoldPose::Request>();
@@ -132,14 +97,10 @@ class PoseSetterServer : public rclcpp::Node {
     _setter->async_send_request(request);
   }
 
-  void execute(const std::shared_ptr<rclcpp_action::ServerGoalHandle<
-                   guppy_msgs::action::Navigate>> goalHandle) {
+  void execute(const std::shared_ptr<rclcpp_action::ServerGoalHandle<guppy_msgs::action::Navigate>> goalHandle) {
     const auto& goal = goalHandle->get_goal();
-    Eigen::Vector3d _end_pos(goal->pose.position.x, goal->pose.position.y,
-                             goal->pose.position.z);
-    Eigen::Quaterniond _end_quat(
-        goal->pose.orientation.w, goal->pose.orientation.x,
-        goal->pose.orientation.y, goal->pose.orientation.z);
+    Eigen::Vector3d _end_pos(goal->pose.position.x, goal->pose.position.y, goal->pose.position.z);
+    Eigen::Quaterniond _end_quat(goal->pose.orientation.w, goal->pose.orientation.x, goal->pose.orientation.y, goal->pose.orientation.z);
 
     if (goal->local) {
       _end_pos = _current_pos + (_current_quat.inverse() * _end_pos);
@@ -183,8 +144,7 @@ class PoseSetterServer : public rclcpp::Node {
     Eigen::Quaterniond qerror;
 
     while (rclcpp::ok()) {
-      if (_cancel || goalHandle->is_canceling() ||
-          _state != guppy_msgs::msg::State::NAV) {
+      if (_cancel || goalHandle->is_canceling() || _state != guppy_msgs::msg::State::NAV) {
         result->pose = get_current_pose();
         result->target_reached = false;
         goalHandle->canceled(result);
@@ -197,9 +157,7 @@ class PoseSetterServer : public rclcpp::Node {
       auto qdistance = _current_quat.inverse() * quat_list[setpoint_index];
       auto qangle = 2 * atan2(qdistance.vec().norm(), qdistance.w());
 
-      if (abs(error.x()) <= tolerance_list[setpoint_index] &&
-          abs(error.y()) <= tolerance_list[setpoint_index] &&
-          abs(error.z()) <= tolerance_list[setpoint_index] &&
+      if (abs(error.x()) <= tolerance_list[setpoint_index] && abs(error.y()) <= tolerance_list[setpoint_index] && abs(error.z()) <= tolerance_list[setpoint_index] &&
           abs(qangle) <= M_PI / 36  // 10 degrees
       ) {
         setpoint_index++;
@@ -240,8 +198,7 @@ int main(int argc, char* argv[]) {
 
   auto node = std::make_shared<PoseSetterServer>();
 
-  rclcpp::executors::MultiThreadedExecutor executor(rclcpp::ExecutorOptions(),
-                                                    2);
+  rclcpp::executors::MultiThreadedExecutor executor(rclcpp::ExecutorOptions(), 2);
 
   executor.add_node(node);
   executor.spin();

@@ -19,13 +19,8 @@ typedef struct camInfo {
 } CamInfo;
 
 std::vector<CamInfo> cams = {
-    {.serial = "17473425", .position = "fl"},
-    {.serial = "17473424", .position = "fr"},
-    {.serial = "14406636", .position = "d"},
-    {.serial = "14406334", .position = "rl"},
-    {.serial = "14406637", .position = "rr"},
-    {.serial = "20188596", .position = "cl"},
-    {.serial = "20188587", .position = "cr"},
+    {.serial = "17473425", .position = "fl"}, {.serial = "17473424", .position = "fr"}, {.serial = "14406636", .position = "d"},  {.serial = "14406334", .position = "rl"},
+    {.serial = "14406637", .position = "rr"}, {.serial = "20188596", .position = "cl"}, {.serial = "20188587", .position = "cr"},
 };
 
 class FlirPublisher : public rclcpp::Node {
@@ -77,8 +72,7 @@ class FlirPublisher : public rclcpp::Node {
   std::thread ackThread;
   std::atomic<bool> running_{false};
 
-  std::vector<rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr>
-      publishers_;
+  std::vector<rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr> publishers_;
   std::vector<std::thread> threads_;
 
   void acquireFootage(int camIndex) {
@@ -89,9 +83,7 @@ class FlirPublisher : public rclcpp::Node {
     while (this->running_) {
       Spinnaker::ImagePtr pImg = pCam->GetNextImage(1000);
       auto msg = std::make_unique<sensor_msgs::msg::Image>();
-      sensor_msgs::fillImage(*msg, sensor_msgs::image_encodings::BAYER_RGGB8,
-                             pImg->GetHeight(), pImg->GetWidth(),
-                             pImg->GetStride(), pImg->GetData());
+      sensor_msgs::fillImage(*msg, sensor_msgs::image_encodings::BAYER_RGGB8, pImg->GetHeight(), pImg->GetWidth(), pImg->GetStride(), pImg->GetData());
       pImg->Release();
 
       this->pubs_[camIndex].publish(*msg.get());

@@ -14,55 +14,30 @@ using namespace std::chrono_literals;
 
 class StateManager : public rclcpp::Node {
  public:
-  StateManager()
-      : Node("state_manager"), current_state_(guppy_msgs::msg::State::STARTUP) {
+  StateManager() : Node("state_manager"), current_state_(guppy_msgs::msg::State::STARTUP) {
     auto state_quality = rclcpp::QoS(1);
     state_quality.reliable();
     state_quality.transient_local();
     state_quality.keep_last(1);
 
-    estopsubscription_ = this->create_subscription<guppy_msgs::msg::CanFrame>(
-        "/can/id_0x1b", 10,
-        std::bind(&StateManager::estopcallback, this, std::placeholders::_1));
-    resetholdpose =
-        this->create_client<std_srvs::srv::Empty>("reset_holding_pose");
+    estopsubscription_ = this->create_subscription<guppy_msgs::msg::CanFrame>("/can/id_0x1b", 10, std::bind(&StateManager::estopcallback, this, std::placeholders::_1));
+    resetholdpose = this->create_client<std_srvs::srv::Empty>("reset_holding_pose");
 
-    state_publisher_ = this->create_publisher<guppy_msgs::msg::State>(
-        "state", state_quality);  // ROS2 QoS let's you tell the topic to hold
-                                  // onto the last published state and ensure
-                                  // every node gets the state :)))))))
-    state_service_ = this->create_service<guppy_msgs::srv::ChangeState>(
-        "change_state",
-        std::bind(&StateManager::transition_callback, this,
-                  std::placeholders::_1, std::placeholders::_2));
-    timer_ =
-        this->create_wall_timer(1ms, std::bind(&StateManager::on_timer, this));
+    state_publisher_ = this->create_publisher<guppy_msgs::msg::State>("state", state_quality);  // ROS2 QoS let's you tell the topic to hold
+                                                                                                // onto the last published state and ensure
+                                                                                                // every node gets the state :)))))))
+    state_service_ = this->create_service<guppy_msgs::srv::ChangeState>("change_state", std::bind(&StateManager::transition_callback, this, std::placeholders::_1, std::placeholders::_2));
+    timer_ = this->create_wall_timer(1ms, std::bind(&StateManager::on_timer, this));
 
-    auto nav_callback =
-        [this](geometry_msgs::msg::Twist::UniquePtr msg) -> void {
-      this->nav_twist_ = *msg;
-    };
-    auto task_callback =
-        [this](geometry_msgs::msg::Twist::UniquePtr msg) -> void {
-      this->task_twist_ = *msg;
-    };
-    auto teleop_callback =
-        [this](geometry_msgs::msg::Twist::UniquePtr msg) -> void {
-      this->teleop_twist_ = *msg;
-    };
+    auto nav_callback = [this](geometry_msgs::msg::Twist::UniquePtr msg) -> void { this->nav_twist_ = *msg; };
+    auto task_callback = [this](geometry_msgs::msg::Twist::UniquePtr msg) -> void { this->task_twist_ = *msg; };
+    auto teleop_callback = [this](geometry_msgs::msg::Twist::UniquePtr msg) -> void { this->teleop_twist_ = *msg; };
 
-    this->nav_subscription_ =
-        this->create_subscription<geometry_msgs::msg::Twist>("cmd_vel/nav", 10,
-                                                             nav_callback);
-    this->task_subscription_ =
-        this->create_subscription<geometry_msgs::msg::Twist>("cmd_vel/task", 10,
-                                                             task_callback);
-    this->teleop_subscription_ =
-        this->create_subscription<geometry_msgs::msg::Twist>(
-            "cmd_vel/teleop", 10, teleop_callback);
+    this->nav_subscription_ = this->create_subscription<geometry_msgs::msg::Twist>("cmd_vel/nav", 10, nav_callback);
+    this->task_subscription_ = this->create_subscription<geometry_msgs::msg::Twist>("cmd_vel/task", 10, task_callback);
+    this->teleop_subscription_ = this->create_subscription<geometry_msgs::msg::Twist>("cmd_vel/teleop", 10, teleop_callback);
 
-    cmd_vel_publisher_ = this->create_publisher<geometry_msgs::msg::Twist>(
-        "cmd_vel", 10);  // this one too
+    cmd_vel_publisher_ = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);  // this one too
 
     static const geometry_msgs::msg::Twist zero_twist;
   }
@@ -122,24 +97,19 @@ class StateManager : public rclcpp::Node {
     }
   }
 
-  void transition_callback(
-      const std::shared_ptr<guppy_msgs::srv::ChangeState::Request> request,
-      std::shared_ptr<guppy_msgs::srv::ChangeState::Response> response) {
-    RCLCPP_INFO(get_logger(), "State transition to %s requested.",
-                to_string(request->new_state.state).c_str());
+  void transition_callback(const std::shared_ptr<guppy_msgs::srv::ChangeState::Request> request, std::shared_ptr<guppy_msgs::srv::ChangeState::Response> response) {
+    RCLCPP_INFO(get_logger(), "State transition to %s requested.", to_string(request->new_state.state).c_str());
 
     auto new_state = request->new_state.state;
 
     if (new_state == this->current_state_) {
-      RCLCPP_WARN(this->get_logger(), "Already in state %s!",
-                  to_string(current_state_).c_str());
+      RCLCPP_WARN(this->get_logger(), "Already in state %s!", to_string(current_state_).c_str());
       response->success = false;
       return;
     }
 
     if (!is_valid_state(new_state)) {
-      RCLCPP_ERROR(this->get_logger(),
-                   "Invalid state passed in transition service!");
+      RCLCPP_ERROR(this->get_logger(), "Invalid state passed in transition service!");
       response->success = false;
       return;
     }
@@ -164,12 +134,9 @@ class StateManager : public rclcpp::Node {
     response->success = this->publish_state(new_state);
 
     if (response->success)
-      RCLCPP_INFO(this->get_logger(), "Transitioning state from %s -> %s.",
-                  to_string(stale_state).c_str(), to_string(new_state).c_str());
+      RCLCPP_INFO(this->get_logger(), "Transitioning state from %s -> %s.", to_string(stale_state).c_str(), to_string(new_state).c_str());
     else
-      RCLCPP_ERROR(
-          get_logger(), "Failed to publish state transition from %s -> %s.",
-          to_string(stale_state).c_str(), to_string(new_state).c_str());
+      RCLCPP_ERROR(get_logger(), "Failed to publish state transition from %s -> %s.", to_string(stale_state).c_str(), to_string(new_state).c_str());
   }
 
   bool publish_state(uint8_t state) {
@@ -214,10 +181,9 @@ class StateManager : public rclcpp::Node {
   }
 
   void handle_holding() {
-    this->cmd_vel_publisher_->publish(
-        StateManager::zero_twist);  // does this need to constantly publish? if
-                                    // not, just publish once upon transition to
-                                    // holding.
+    this->cmd_vel_publisher_->publish(StateManager::zero_twist);  // does this need to constantly publish? if
+                                                                  // not, just publish once upon transition to
+                                                                  // holding.
   }
 
   void handle_nav() {
@@ -254,8 +220,7 @@ class StateManager : public rclcpp::Node {
 
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr nav_subscription_;
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr task_subscription_;
-  rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr
-      teleop_subscription_;
+  rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr teleop_subscription_;
 
   std::optional<geometry_msgs::msg::Twist> nav_twist_;
   std::optional<geometry_msgs::msg::Twist> task_twist_;

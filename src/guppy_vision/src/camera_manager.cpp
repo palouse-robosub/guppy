@@ -21,8 +21,7 @@ void CameraManager::takePicture(CameraPtr pCam) {
   pCam->Init();
   INodeMap& nodeMap = pCam->GetNodeMap();
 
-  cout << "Acquiring single image from " << nodeMapTLDevice.GetDeviceName()
-       << endl;
+  cout << "Acquiring single image from " << nodeMapTLDevice.GetDeviceName() << endl;
 
   pCam->BeginAcquisition();
 
@@ -77,12 +76,10 @@ int CameraManager::setStreamMode(CameraPtr pCam, StreamMode mode) {
   }
 
   // Retrieve the desired entry node from the enumeration node
-  const CEnumEntryPtr ptrStreamModeCustom =
-      ptrStreamMode->GetEntryByName(streamMode);
+  const CEnumEntryPtr ptrStreamModeCustom = ptrStreamMode->GetEntryByName(streamMode);
   if (!IsReadable(ptrStreamModeCustom)) {
     // Failed to get custom node
-    cout << "Stream mode " + streamMode + " not available.  Aborting..."
-         << endl;
+    cout << "Stream mode " + streamMode + " not available.  Aborting..." << endl;
     return -1;
   }
   // Retrieve the integer value from the entry node
@@ -92,10 +89,7 @@ int CameraManager::setStreamMode(CameraPtr pCam, StreamMode mode) {
   ptrStreamMode->SetIntValue(streamModeCustom);
 
   // Print out the current stream mode
-  cout << endl
-       << "Stream Mode set to " +
-              ptrStreamMode->GetCurrentEntry()->GetSymbolic()
-       << "..." << endl;
+  cout << endl << "Stream Mode set to " + ptrStreamMode->GetCurrentEntry()->GetSymbolic() << "..." << endl;
 
   return 0;
 }

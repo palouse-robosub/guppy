@@ -25,28 +25,20 @@ class NavigationBehaviorTree : public rclcpp::Node {
   NavigationBehaviorTree() : Node("navigation_behavior_tree") {
     BT::BehaviorTreeFactory factory;
 
-    _change_state_client =
-        std::make_shared<rclcpp::Node>("chage_state_behavior_client");
-    _navigation_client =
-        std::make_shared<rclcpp::Node>("navigate_behavior_client");
-    _detection_subscriber =
-        std::make_shared<rclcpp::Node>("detection_subscriber");
+    _change_state_client = std::make_shared<rclcpp::Node>("chage_state_behavior_client");
+    _navigation_client = std::make_shared<rclcpp::Node>("navigate_behavior_client");
+    _detection_subscriber = std::make_shared<rclcpp::Node>("detection_subscriber");
 
     BT::RosNodeParams stateParameters(_change_state_client, "change_state");
     BT::RosNodeParams navigateParameters(_navigation_client, "/navigate");
-    BT::RosNodeParams detectionParameters(_detection_subscriber,
-                                          "/cam/test/detections");
+    BT::RosNodeParams detectionParameters(_detection_subscriber, "/cam/test/detections");
 
-    factory.registerNodeType<ChangeStateBehavior>("ChangeState",
-                                                  stateParameters);
+    factory.registerNodeType<ChangeStateBehavior>("ChangeState", stateParameters);
     factory.registerNodeType<NavigateBehavior>("Navigate", navigateParameters);
-    factory.registerNodeType<FaceDetectionBehavior>("FaceDetection",
-                                                    navigateParameters);
-    factory.registerNodeType<AcquireDetection>("AcquireDetection",
-                                               detectionParameters);
+    factory.registerNodeType<FaceDetectionBehavior>("FaceDetection", navigateParameters);
+    factory.registerNodeType<AcquireDetection>("AcquireDetection", detectionParameters);
 
-    _tree = std::make_unique<BT::Tree>(factory.createTreeFromFile(
-        "./src/guppy_tasks/resource/" + std::string(TREE_NAME) + ".xml"));
+    _tree = std::make_unique<BT::Tree>(factory.createTreeFromFile("./src/guppy_tasks/resource/" + std::string(TREE_NAME) + ".xml"));
 
     auto tick = [this]() {
       if (!_running)
@@ -66,16 +58,10 @@ class NavigationBehaviorTree : public rclcpp::Node {
 
     _timer = this->create_wall_timer(std::chrono::milliseconds(TICK_MS), tick);
 
-    auto state_quality =
-        rclcpp::QoS(rclcpp::KeepLast(1))
-            .reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE)
-            .durability(RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL);
-    _subscription = this->create_subscription<guppy_msgs::msg::State>(
-        "state", state_quality, onState);
+    auto state_quality = rclcpp::QoS(rclcpp::KeepLast(1)).reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE).durability(RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL);
+    _subscription = this->create_subscription<guppy_msgs::msg::State>("state", state_quality, onState);
 
-    RCLCPP_INFO(get_logger(),
-                "Behavior tree %s initialized with %lu registered nodes.",
-                TREE_NAME, factory.builders().size());
+    RCLCPP_INFO(get_logger(), "Behavior tree %s initialized with %lu registered nodes.", TREE_NAME, factory.builders().size());
   }
 
  private:

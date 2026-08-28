@@ -34,12 +34,11 @@ class ChassisController {
   int first_run = 0;
 
   /* strange chatgpt magic to bypass the deprecated constructor... */
-  inline static const control_toolbox::AntiWindupStrategy antiwindup_strat =
-      [] {
-        control_toolbox::AntiWindupStrategy a;
-        a.set_type("back_calculation");
-        return a;
-      }();
+  inline static const control_toolbox::AntiWindupStrategy antiwindup_strat = [] {
+    control_toolbox::AntiWindupStrategy a;
+    a.set_type("back_calculation");
+    return a;
+  }();
   // end weird magic
 
   /* stores the state of the orientation locking code */
@@ -57,21 +56,17 @@ class ChassisController {
   /* A grouping of parameters to setup and configure the chassis controller. */
   typedef struct chassis_controller_params_ {
     /* A 6XN_MOTORS matrix of coefficients corresponding to each motor */
-    Eigen::Matrix<double, 6, N_MOTORS> motor_coefficients =
-        Eigen::Matrix<double, 6, N_MOTORS>::Zero();
+    Eigen::Matrix<double, 6, N_MOTORS> motor_coefficients = Eigen::Matrix<double, 6, N_MOTORS>::Zero();
     /* A vector of ordered motor lower bounds in Newtons of thrust. */
-    Eigen::Vector<double, N_MOTORS> motor_lower_bounds =
-        Eigen::Vector<double, N_MOTORS>::Zero();
+    Eigen::Vector<double, N_MOTORS> motor_lower_bounds = Eigen::Vector<double, N_MOTORS>::Zero();
 
     /* A vector of ordered motor upper bounds in Newtons of thrust. */
-    Eigen::Vector<double, N_MOTORS> motor_upper_bounds =
-        Eigen::Vector<double, N_MOTORS>::Zero();
+    Eigen::Vector<double, N_MOTORS> motor_upper_bounds = Eigen::Vector<double, N_MOTORS>::Zero();
 
     // control parameters
     /* A diagonal matrix of weights between Fx,Fy,Fz,Tx,Ty,Tz in the QP problem
      */
-    Eigen::Matrix<double, 6, 6> axis_weight_matrix =
-        Eigen::Matrix<double, 6, 6>::Identity();
+    Eigen::Matrix<double, 6, 6> axis_weight_matrix = Eigen::Matrix<double, 6, 6>::Identity();
 
     /* PID Gains for linear velocity feedback control */
     std::vector<double> pid_gains_vel_linear = {1, 0, 0};
@@ -86,13 +81,11 @@ class ChassisController {
     std::vector<double> pid_gains_pose_angular = {1, 0, 0};
 
     /* Six deadband values for when an axis should be considered locked */
-    Eigen::Vector<double, 6> pose_lock_deadband =
-        Eigen::Vector<double, 6>::Zero();
+    Eigen::Vector<double, 6> pose_lock_deadband = Eigen::Vector<double, 6>::Zero();
 
     // robot setup
     /* Drag coefficients for movement in all six axes */
-    Eigen::Vector<double, 6> drag_coefficients =
-        Eigen::Vector<double, 6>::Zero();
+    Eigen::Vector<double, 6> drag_coefficients = Eigen::Vector<double, 6>::Zero();
 
     /* Drag areas of all six "axes" */
     Eigen::Vector<double, 6> drag_areas = Eigen::Vector<double, 6>::Zero();
@@ -111,8 +104,7 @@ class ChassisController {
 
         The above matrix would mean that pitch is changed by 0.2Fx movement.
     */
-    Eigen::Matrix<double, 6, 6> drag_effect_matrix =
-        Eigen::Matrix<double, 6, 6>::Identity();
+    Eigen::Matrix<double, 6, 6> drag_effect_matrix = Eigen::Matrix<double, 6, 6>::Identity();
 
     /* water density in kg/m^3 */
     double water_density = 1000;  // kg/m^3
@@ -139,9 +131,7 @@ class ChassisController {
       @param hw_interface the interface that motor values will be written to
       @param dt_us the loop period in microseconds (default 500us)
   */
-  ChassisController(ChassisControllerParams parameters,
-                    T200Interface* hw_interface,
-                    int dt_us = 500);
+  ChassisController(ChassisControllerParams parameters, T200Interface* hw_interface, int dt_us = 500);
   ~ChassisController();
 
   /*
@@ -258,8 +248,7 @@ class ChassisController {
      Newtons in the local frame
       @return a N_MOTOR-vector of ordered motor thrusts in Newtons
   */
-  Eigen::Vector<double, N_MOTORS> allocate_thrust(
-      Eigen::Vector<double, 6> local_wrench);
+  Eigen::Vector<double, N_MOTORS> allocate_thrust(Eigen::Vector<double, 6> local_wrench);
 
   /*
       @brief calculates the orientation lock logic

@@ -15,12 +15,9 @@ using namespace std::chrono_literals;
 class NavStart : public rclcpp::Node {
  public:
   NavStart() : Node("navstart") {
-    navswitchsub = this->create_subscription<guppy_msgs::msg::CanFrame>(
-        "/can/id_0x22", 10,
-        std::bind(&NavStart::switchcallback, this, std::placeholders::_1));
+    navswitchsub = this->create_subscription<guppy_msgs::msg::CanFrame>("/can/id_0x22", 10, std::bind(&NavStart::switchcallback, this, std::placeholders::_1));
 
-    stateclient =
-        this->create_client<guppy_msgs::srv::ChangeState>("change_state");
+    stateclient = this->create_client<guppy_msgs::srv::ChangeState>("change_state");
   }
 
  private:

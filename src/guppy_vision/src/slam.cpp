@@ -19,15 +19,12 @@ using namespace std::chrono_literals;
 class SlamNode : public rclcpp::Node {
  public:
   SlamNode() : Node("slam") {
-    output_pub_ = this->create_subscription<guppy_msgs::msg::TransformList>(
-        "/cam/test/transforms", 10,
-        std::bind(&SlamNode::callback, this, std::placeholders::_1));
+    output_pub_ = this->create_subscription<guppy_msgs::msg::TransformList>("/cam/test/transforms", 10, std::bind(&SlamNode::callback, this, std::placeholders::_1));
 
     tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
     tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
     tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
-    tf_static_broadcaster_ =
-        std::make_shared<tf2_ros::StaticTransformBroadcaster>(*this);
+    tf_static_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(*this);
   }
 
   ~SlamNode() {
@@ -37,22 +34,19 @@ class SlamNode : public rclcpp::Node {
   void callback(guppy_msgs::msg::TransformList::UniquePtr msg) {
     std::vector<tf2::Transform> potential_odoms;
 
-    for (geometry_msgs::msg::TransformStamped tf_msg_cam_object :
-         msg->transforms) {
+    for (geometry_msgs::msg::TransformStamped tf_msg_cam_object : msg->transforms) {
       std::string name = tf_msg_cam_object.child_frame_id;
       tf_broadcaster_->sendTransform(tf_msg_cam_object);
 
       if (already_seen.count(name) > 0) {
         tf2::Transform tf_map_obj = already_seen[name];
         tf2::Transform tf_odom_object;
-        geometry_msgs::msg::TransformStamped tf_msg_odom_object =
-            tf_buffer_->lookupTransform("odom", name, this->get_clock()->now());
+        geometry_msgs::msg::TransformStamped tf_msg_odom_object = tf_buffer_->lookupTransform("odom", name, this->get_clock()->now());
         tf2::fromMsg(tf_msg_odom_object.transform, tf_odom_object);
 
         potential_odoms.push_back(tf_map_obj * tf_odom_object.inverse());
       } else {
-        geometry_msgs::msg::TransformStamped tf_msg_map_object =
-            tf_buffer_->lookupTransform("map", name, this->get_clock()->now());
+        geometry_msgs::msg::TransformStamped tf_msg_map_object = tf_buffer_->lookupTransform("map", name, this->get_clock()->now());
         tf2::fromMsg(tf_msg_map_object.transform, already_seen[name]);
       }
     }

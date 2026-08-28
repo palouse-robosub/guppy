@@ -14,12 +14,8 @@ class BarometerPublisher : public rclcpp::Node {
   BarometerPublisher() : Node("barometer_publisher") {
     this->declare_parameter("tf_frame", "barometer");
 
-    publisher_ =
-        this->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>(
-            "/barometer", 10);
-    subscription_ = this->create_subscription<guppy_msgs::msg::CanFrame>(
-        "/can/id_0x26", 10,
-        std::bind(&BarometerPublisher::callback, this, std::placeholders::_1));
+    publisher_ = this->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>("/barometer", 10);
+    subscription_ = this->create_subscription<guppy_msgs::msg::CanFrame>("/can/id_0x26", 10, std::bind(&BarometerPublisher::callback, this, std::placeholders::_1));
 
     RCLCPP_INFO(this->get_logger(), "setup publisher and subscriber");
   }
@@ -43,9 +39,7 @@ class BarometerPublisher : public rclcpp::Node {
     pose_out.pose.pose.position.z = depth;
 
     // this is chatgpt... need to find actual values
-    pose_out.pose.covariance = {-1, 0, 0,   0, 0,  0, 0, -1, 0, 0,  0, 0,
-                                0,  0, 0.5, 0, 0,  0, 0, 0,  0, -1, 0, 0,
-                                0,  0, 0,   0, -1, 0, 0, 0,  0, 0,  0, -1};
+    pose_out.pose.covariance = {-1, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0.5, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, -1};
 
     publisher_->publish(pose_out);
 
@@ -53,8 +47,7 @@ class BarometerPublisher : public rclcpp::Node {
   }
 
  private:
-  rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr
-      publisher_;
+  rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr publisher_;
   rclcpp::Subscription<guppy_msgs::msg::CanFrame>::SharedPtr subscription_;
   double offset = 0;
   bool initialized = false;

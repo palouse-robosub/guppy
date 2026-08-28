@@ -21,10 +21,8 @@ class WebcamPublisher : public rclcpp::Node {
 
   WebcamPublisher() : Node("webcam_pub") {
     camera.open(0);
-    info_pub_ = this->create_publisher<sensor_msgs::msg::CameraInfo>(
-        "/cam/test/camera_info", 1);
-    timer_ = this->create_wall_timer(
-        50ms, std::bind(&WebcamPublisher::timer_callback, this));
+    info_pub_ = this->create_publisher<sensor_msgs::msg::CameraInfo>("/cam/test/camera_info", 1);
+    timer_ = this->create_wall_timer(50ms, std::bind(&WebcamPublisher::timer_callback, this));
   }
 
   ~WebcamPublisher() {
@@ -34,8 +32,7 @@ class WebcamPublisher : public rclcpp::Node {
  private:
   void post_init() {
     it_ = std::make_unique<image_transport::ImageTransport>(shared_from_this());
-    image_pub_ = it_->advertise("/cam/test",
-                                rclcpp::SensorDataQoS().get_rmw_qos_profile());
+    image_pub_ = it_->advertise("/cam/test", rclcpp::SensorDataQoS().get_rmw_qos_profile());
   }
   void timer_callback() {
     camera.grab();
@@ -54,17 +51,8 @@ class WebcamPublisher : public rclcpp::Node {
     info.height = image.rows;
     info.width = image.cols;
     info.distortion_model = "opencv(?)";
-    info.d = {0.11278175177017583, -0.2634338012261266, -0.004302324657789871,
-              0.0007975991434697732, 0.16261327039070175};
-    info.k = {556.6559171023735,
-              0.0,
-              329.6728647483841,
-              0.0,
-              556.1111124909132,
-              240.66490808614884,
-              0.0,
-              0.0,
-              1.0};
+    info.d = {0.11278175177017583, -0.2634338012261266, -0.004302324657789871, 0.0007975991434697732, 0.16261327039070175};
+    info.k = {556.6559171023735, 0.0, 329.6728647483841, 0.0, 556.1111124909132, 240.66490808614884, 0.0, 0.0, 1.0};
 
     info_pub_->publish(info);
   }

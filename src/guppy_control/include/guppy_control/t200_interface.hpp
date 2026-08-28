@@ -52,10 +52,7 @@ class T200Interface {
       @param can_interface the can interface to connect to, like can0 or vcan0
       @param can_ids an ordered vector of thruster CAN ids
   */
-  T200Interface(std::string can_interface, std::vector<unsigned int> can_ids)
-      : can_ids(can_ids), can_interface_(can_interface) {
-    setup_can();
-  };
+  T200Interface(std::string can_interface, std::vector<unsigned int> can_ids) : can_ids(can_ids), can_interface_(can_interface) { setup_can(); };
 
   /* closes socket */
   ~T200Interface() {
