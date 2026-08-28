@@ -34,7 +34,7 @@ class AprilTagDetection(Node):
         img_o[:, :, 0] *= 1
         img_o[:, :, 1] *= 1
         img_o[:, :, 2] *= 1
-        # img_o = cv2.merge([img_o[:,:,0]*0.01, img_o[:,:,1]*0.01, img_o[:,:,2]*1]).astype(np.uint8)
+
         img = cv2.cvtColor(img_o, cv2.COLOR_BGR2GRAY)
         results = detector.detect(img)
 
@@ -111,8 +111,7 @@ class AprilTagDetection(Node):
             # cv2.putText(anno, "C", ptC, cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 4)
             # cv2.putText(anno, "D", ptD, cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 4)
 
-        self.annotation_publisher.publish(
-            bridge.cv2_to_imgmsg(anno, encoding="mono8"))
+        self.annotation_publisher.publish(bridge.cv2_to_imgmsg(anno, encoding="mono8"))
 
 
 def main(args=None):

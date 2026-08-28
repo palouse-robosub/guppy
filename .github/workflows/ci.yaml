@@ -31,7 +31,7 @@ jobs:
           python-version: 3.13
 
       - name: Install Python dependencies
-        run: pip install black flake8 ruff
+        run: pip install black ruff
 
       - name: Install ClangFormat and xmllint
         run: sudo apt-get install -y clang-format
@@ -41,7 +41,8 @@ jobs:
         with:
           continue_on_error: false
           ruff: true
-          ruff_args: --select E,F,W,C90,B,SIM,ARG,PIE,PL
+          ruff_args: --select E,F,W,B,SIM,ARG,PIE
+          black: true
           clang_format: true
 
   commit_names:

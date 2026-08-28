@@ -12,7 +12,10 @@ class ControllerModeError(Exception):
 
     def __init__(self, msg=None):
         if msg is None:
-            msg = "Please ensure the Logitech Gamepad is in XInput mode using the switch on the bottom."
+            msg = (
+                "Please ensure the Logitech Gamepad is "
+                "in XInput mode using the switch on the bottom."
+            )
         super().__init__(msg)
 
 
@@ -58,13 +61,11 @@ class RawController:
             raise ValueError("No controller found")
         pygame.event.pump()
         state = {}
-        state["axes"] = [self._joystick.get_axis(
-            i) for i in range(self.numaxes)]
+        state["axes"] = [self._joystick.get_axis(i) for i in range(self.numaxes)]
         state["buttons"] = [
             self._joystick.get_button(i) for i in range(self.numbuttons)
         ]
-        state["hats"] = [self._joystick.get_hat(
-            i) for i in range(self.numhats)]
+        state["hats"] = [self._joystick.get_hat(i) for i in range(self.numhats)]
         state["name"] = self.gamepad_name
         return state
 
@@ -73,12 +74,9 @@ class RawControllerPublisher(Node):
     def __init__(self):
         super().__init__("raw_controller")
         # create publishers
-        self.dpad_publisher = self.create_publisher(
-            Int32MultiArray, "dpad", 10)
-        self.axes_publisher = self.create_publisher(
-            Float32MultiArray, "axes", 10)
-        self.button_publisher = self.create_publisher(
-            Int32MultiArray, "buttons", 10)
+        self.dpad_publisher = self.create_publisher(Int32MultiArray, "dpad", 10)
+        self.axes_publisher = self.create_publisher(Float32MultiArray, "axes", 10)
+        self.button_publisher = self.create_publisher(Int32MultiArray, "buttons", 10)
         self.name_publisher = self.create_publisher(String, "gamepad_name", 10)
 
         self.controller = RawController()

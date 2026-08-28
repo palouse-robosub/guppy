@@ -1,5 +1,6 @@
 # input device meant for Logitech Logitech Extreme 3D
-# fair warning for this guy, has pretty bad drift on the twist meaning it will hold lock so, set low priority to override it
+# fair warning for this guy, has pretty bad drift on the twist
+# meaning it will hold lock so, set low priority to override it
 
 # from guppy_teleop.input.joystick import find_joysticks
 from collections.abc import Callable  # , TYPE_CHECKING
@@ -135,13 +136,11 @@ class Joystick(Controller):
             float(snapshot["joystick_x"]), self.LINEAR_MULTIPLIER[1] * throttle
         )
         twist.linear.z = (
-            -float(snapshot["thumb_stick_y"]) *
-            self.LINEAR_MULTIPLIER[2] * throttle
+            -float(snapshot["thumb_stick_y"]) * self.LINEAR_MULTIPLIER[2] * throttle
         )
 
         twist.angular.x = (
-            float(snapshot["thumb_stick_x"]) *
-            self.ANGULAR_MULTIPLIER[0] * throttle
+            float(snapshot["thumb_stick_x"]) * self.ANGULAR_MULTIPLIER[0] * throttle
         )
         twist.angular.y = (
             (float(snapshot["5"]) - float(snapshot["6"]))
@@ -149,13 +148,12 @@ class Joystick(Controller):
             * throttle
         )
         twist.angular.z = -self.stick_deadzone(
-            float(snapshot["joystick_twist"]
-                  ), self.ANGULAR_MULTIPLIER[2] * throttle
+            float(snapshot["joystick_twist"]), self.ANGULAR_MULTIPLIER[2] * throttle
         )
 
         return twist
 
-    def package(self, snapshot: dict) -> dict:
+    def package(self, _: dict) -> dict:
         return {  # TODO THESE NEED TUNING
             "name": self.name,
             "format": "joystick",

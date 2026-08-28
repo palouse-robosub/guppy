@@ -21,8 +21,7 @@ class WorkspaceManager(QObject):
 
     @Slot(str)
     def loadWorkspace(self, workspace_id: str):
-        self.loadWorkspaceFromUrl(
-            WORKSPACES_PATH.joinpath(f"{workspace_id}.json"))
+        self.loadWorkspaceFromUrl(WORKSPACES_PATH.joinpath(f"{workspace_id}.json"))
 
     @Slot(str)
     def loadWorkspaceFromUrl(self, filepath):

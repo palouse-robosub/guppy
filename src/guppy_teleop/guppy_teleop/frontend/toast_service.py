@@ -17,8 +17,7 @@ class ToastService(Node):
             depth=1,
         )
 
-        self.create_subscription(
-            Toast, "send_toast", self._on_toast, toast_quality)
+        self.create_subscription(Toast, "send_toast", self._on_toast, toast_quality)
 
     def _on_toast(self, message: Toast):
         if self.toastManager is None:

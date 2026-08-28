@@ -14,8 +14,7 @@ package_name = "guppy_teleop"
 class build_qt(build_py):
     def run(self):
         qrc_src = Path("guppy_teleop/frontend/assets.qrc")
-        asset_dest = Path(self.build_lib) / \
-            "guppy_teleop/frontend/rc_assets.py"
+        asset_dest = Path(self.build_lib) / "guppy_teleop/frontend/rc_assets.py"
 
         print(f"Compiling Qt resources... {qrc_src} -> {asset_dest}")
 
@@ -23,7 +22,7 @@ class build_qt(build_py):
 
         # result = subprocess.run(["pyside6-rcc", str(qrc_src), "-o", str(asset_dest)])
         result = subprocess.run(
-            ["rcc", "-g", "python", str(qrc_src), "-o", str(asset_dest)]
+            ["rcc", "-g", "python", str(qrc_src), "-o", str(asset_dest)], check=True
         )
 
         if (x := result.returncode) != 0:
@@ -52,8 +51,7 @@ setup(
         "guppy_teleop.frontend.icons.toastify": ["*.svg"],
     },
     data_files=[
-        ("share/ament_index/resource_index/packages",
-         ["resource/" + package_name]),
+        ("share/ament_index/resource_index/packages", ["resource/" + package_name]),
         ("share/" + package_name, ["package.xml"]),
         (
             os.path.join("share", package_name, "launch"),

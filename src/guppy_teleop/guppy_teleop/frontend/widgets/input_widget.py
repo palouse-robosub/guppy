@@ -1,5 +1,3 @@
-
-
 from evdev import KeyEvent
 from PySide6.QtCore import Property, Signal
 

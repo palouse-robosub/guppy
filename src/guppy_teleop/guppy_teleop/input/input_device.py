@@ -7,7 +7,9 @@ from guppy_teleop.util.device_mode import DeviceMode
 from guppy_teleop.util.device_priority import DevicePriority
 
 
-# TODO replace enabled with a mode: DISABLED, COMMAND, INPUT so that a device can only send commands (ie. the keyboard so it doesn't send things while typing)
+# TODO replace enabled with a mode: DISABLED, COMMAND, INPUT so that a
+# device can only send commands (ie. the keyboard so it doesn't
+# send things while typing)
 class InputDevice(ABC):
     def __init__(
         self,
@@ -15,7 +17,8 @@ class InputDevice(ABC):
         name: str = "Unkown Input Device",
         priority: DevicePriority = DevicePriority.MEDIUM,
     ):
-        # bad design but whatever, makes it convienient to call commands without passing in lots of callbacks
+        # bad design but whatever, makes it convienient to call
+        # commands without passing in lots of callbacks
         self.handler = None
 
         self.mode = mode
@@ -36,9 +39,9 @@ class InputDevice(ABC):
     def _mark_inactive(self):
         self.active = False
 
-    def _cycle_mode(
-        self, *skip: DeviceMode
-    ):  # TODO devices need better control rather than just cycling, or the method of cycling is still available while disabled
+    def _cycle_mode(self, *skip: DeviceMode):
+        # TODO devices need better control rather than just cycling,
+        # or the method of cycling is still available while disabled
         if set(DeviceMode) == set(skip):
             raise AssertionError("cannot skip all items in cycle!")
 

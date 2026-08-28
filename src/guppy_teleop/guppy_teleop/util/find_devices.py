@@ -13,12 +13,8 @@ def find_joysticks(
     handler,
     mode: DeviceMode = DeviceMode.DISABLED,
     priority: DevicePriority = DevicePriority.MEDIUM,
-    find_subclasses: bool = True,
 ) -> list[Joystick]:
     sub_devices: list[InputDevice] = []
-
-    # if find_subclasses: # subclasses
-    #    sub_devices.extend(find_joysticks(handler, mode, priority, find_subclasses))
 
     sub_paths: list[str] = [device._device.path for device in sub_devices]
 
@@ -46,9 +42,9 @@ def find_joysticks(
     devices: list[InputDevice] = []
 
     devices.extend(sub_devices)
-    devices.extend(
-        [Joystick(handler, path, mode, None, priority) for path in paths]
-    )  # TODO no need to pass path if you just created the freakin device, check type if it's string or not in constructor
+    devices.extend([Joystick(handler, path, mode, None, priority) for path in paths])
+    # TODO no need to pass path if you just created the freakin device,
+    # check type if it's string or not in constructor
 
     return devices
 
@@ -62,8 +58,7 @@ def find_controllers(
     sub_devices: list[InputDevice] = []
 
     if find_subclasses:  # subclasses
-        sub_devices.extend(find_joysticks(
-            handler, mode, priority, find_subclasses))
+        sub_devices.extend(find_joysticks(handler, mode, priority, find_subclasses))
 
     sub_paths: list[str] = [device._device.path for device in sub_devices]
 
@@ -91,9 +86,9 @@ def find_controllers(
     devices: list[InputDevice] = []
 
     devices.extend(sub_devices)
-    devices.extend(
-        [Controller(handler, path, mode, None, priority) for path in paths]
-    )  # TODO no need to pass path if you just created the freakin device, check type if it's string or not in constructor
+    devices.extend([Controller(handler, path, mode, None, priority) for path in paths])
+    # TODO no need to pass path if you just created the freakin device,
+    # check type if it's string or not in constructor
 
     return devices
 
@@ -102,12 +97,8 @@ def find_keyboards(
     handler,
     mode: DeviceMode = DeviceMode.DISABLED,
     priority=DevicePriority.MEDIUM,
-    find_subclasses: bool = True,
 ) -> list[Keyboard]:
     sub_devices: list[InputDevice] = []
-
-    # if find_subclasses: # subclasses
-    #    sub_devices.extend(find_joysticks(handler, mode, priority, find_subclasses))
 
     sub_paths: list[str] = [device._device.path for device in sub_devices]
 
@@ -135,8 +126,8 @@ def find_keyboards(
     devices: list[InputDevice] = []
 
     devices.extend(sub_devices)
-    devices.extend(
-        [Keyboard(handler, path, mode, None, priority) for path in paths]
-    )  # TODO no need to pass path if you just created the freakin device, check type if it's string or not in constructor
+    devices.extend([Keyboard(handler, path, mode, None, priority) for path in paths])
+    # TODO no need to pass path if you just created the freakin
+    # device,check type if it's string or not in constructor
 
     return devices

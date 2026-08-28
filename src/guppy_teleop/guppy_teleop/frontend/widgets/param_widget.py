@@ -36,8 +36,7 @@ class ParameterWidget(Node, Widget):
         list_client = self.create_client(
             ListParameters, "control_chassis/list_parameters"
         )
-        get_client = self.create_client(
-            GetParameters, "control_chassis/get_parameters")
+        get_client = self.create_client(GetParameters, "control_chassis/get_parameters")
 
         if not list_client.wait_for_service(timeout_sec=2.0):
             self.get_logger().error(
@@ -63,8 +62,7 @@ class ParameterWidget(Node, Widget):
         values = future.result().values
 
         for name, value in zip(names, values, strict=False):
-            self._params[name] = rclpy.parameter.parameter_value_to_python(
-                value)
+            self._params[name] = rclpy.parameter.parameter_value_to_python(value)
 
     def _on_param_change(self, event: ParameterEvent):
         for param in event.changed_parameters:
@@ -86,8 +84,8 @@ class ParameterWidget(Node, Widget):
             for key, value in params.items():
                 if not value.__eq__(self._params[key]):
                     if isinstance(value, list):
-                        value = list(map(float, value))
-                    requests.append(Parameter(name=key, value=value))
+                        value2 = list(map(float, value))
+                    requests.append(Parameter(name=key, value=value2))
 
             if len(requests) == 0:
                 return True
@@ -97,8 +95,7 @@ class ParameterWidget(Node, Widget):
             if not self.client.wait_for_services(timeout_sec=2.0):
                 raise RuntimeError("parameter service not available")
 
-            future: Future[SetParametersResult] = self.client.set_parameters(
-                requests)
+            future: Future[SetParametersResult] = self.client.set_parameters(requests)
             rclpy.spin_until_future_complete(self, future)
 
             response: SetParameters.Response = future.result()

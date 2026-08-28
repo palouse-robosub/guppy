@@ -52,8 +52,7 @@ class Translator(Node):
             and self.controller_name is not None
         ):
             self.publish_twist()
-            self.controller_state = {
-                "dpad": None, "axes": None, "buttons": None}
+            self.controller_state = {"dpad": None, "axes": None, "buttons": None}
 
     def publish_twist(self):
         if (
@@ -72,17 +71,17 @@ class Translator(Node):
                 self.publisher.publish(twist)
 
 
-def logitech_twist(controller_state):
+def logitech_twist(controller_state, db=0.05):
     twist = Twist()
 
     twist.linear.x = (
-        -controller_state["axes"][4] if abs(controller_state["axes"][4]) > 0.05 else 0.0
+        -controller_state["axes"][4] if abs(controller_state["axes"][4]) > db else 0.0
     )  # right stick vertical
     twist.linear.y = (
-        -controller_state["axes"][3] if abs(controller_state["axes"][3]) > 0.05 else 0.0
+        -controller_state["axes"][3] if abs(controller_state["axes"][3]) > db else 0.0
     )  # right stick horizontal
     twist.linear.z = (
-        -controller_state["axes"][1] if abs(controller_state["axes"][1]) > 0.05 else 0.0
+        -controller_state["axes"][1] if abs(controller_state["axes"][1]) > db else 0.0
     )  # left stick vertical
     twist.angular.y = -float(controller_state["dpad"][1])  # pitch
     twist.angular.x = -float(controller_state["dpad"][0])  # roll

@@ -20,8 +20,7 @@ class ObjectDetection(Node):
         super().__init__("object_detection")
 
         # Model generously provided by OSU-UWRT
-        self.model = YOLO(
-            "/home/robosub/guppy/src/guppy_vision/resource/ffc_rs_26.pt")
+        self.model = YOLO("/home/robosub/guppy/src/guppy_vision/resource/ffc_rs_26.pt")
         self.bridge = CvBridge()
 
         self.sub = self.create_subscription(
@@ -35,7 +34,7 @@ class ObjectDetection(Node):
         frame = self.bridge.imgmsg_to_cv2(msg)
         results = self.model(frame)
 
-        l = CornerDetectionList()
+        corner_list = CornerDetectionList()
 
         if results[0].masks is not None:
             json = jsonlib.loads(results[0].to_json())
@@ -71,10 +70,10 @@ class ObjectDetection(Node):
                     point.z = float(z)
                     det.dimension_points.append(point)
 
-                l.detections.append(det)
+                corner_list.detections.append(det)
 
-        l.header = msg.header
-        self.pub.publish(l)
+        corner_list.header = msg.header
+        self.pub.publish(corner_list)
 
 
 def main(args=None):

@@ -62,8 +62,7 @@ class RawController:
 
         state = {}
 
-        state["axes"] = [self._joystick.get_axis(
-            i) for i in range(self.numaxes)]
+        state["axes"] = [self._joystick.get_axis(i) for i in range(self.numaxes)]
         state["buttons"] = [
             self._joystick.get_button(i) for i in range(self.numbuttons)
         ]
@@ -88,7 +87,10 @@ def logitech_twist(controller_state: dict) -> Twist:
         else 0.0
     )  # right stick horizontal
     # DISABLE Z MOVEMENT FOR KSED
-    # twist.linear.z = MULTIPLIER * -controller_state["axes"][1] if abs(controller_state["axes"][1]) > 0.15 else 0.0 # left stick vertical
+    # twist.linear.z = MULTIPLIER * \
+    #   -controller_state["axes"][1] if abs(controller_state["axes"][1]) \
+    #   > 0.15 else 0.0 # left stick vertical
+
     twist.linear.z = 0
     twist.angular.y = MULTIPLIER * float(controller_state["dpad"][1])  # pitch
     twist.angular.x = -MULTIPLIER * float(controller_state["dpad"][0])  # roll
@@ -146,8 +148,7 @@ class KsedTeleop(Node):
         self._display = pygame.display.set_mode((800, 400))
 
         # publishers
-        self._cmd_vel_publisher = self.create_publisher(
-            Twist, "/cmd_vel/teleop", 10)
+        self._cmd_vel_publisher = self.create_publisher(Twist, "/cmd_vel/teleop", 10)
 
         state_quality = QoSProfile(
             reliability=ReliabilityPolicy.RELIABLE,
@@ -214,9 +215,7 @@ class KsedTeleop(Node):
 
         self._update_display()
 
-    def _publish_twist(
-        self, parent: dict, kid_logi: dict | None = None, kid_joy: dict | None = None
-    ) -> None:
+    def _publish_twist(self, parent: dict, kid_logi: dict | None = None, **_) -> None:
         parent_twist = series_x_twist(parent)
         kid_logi_twist = None
         kid_joy_twist = None
@@ -274,8 +273,7 @@ class KsedTeleop(Node):
         enabled_str = "Kid Enabled" if self._kid_enabled else "Kid Disabled"
         kid_text = self._font.render(enabled_str, True, (0, 0, 0))
         self._display.blit(
-            kid_text, (200 - kid_text.get_width() / 2,
-                       200 - kid_text.get_height() / 2)
+            kid_text, (200 - kid_text.get_width() / 2, 200 - kid_text.get_height() / 2)
         )
 
         # global state

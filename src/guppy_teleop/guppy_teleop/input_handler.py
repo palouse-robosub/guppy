@@ -53,8 +53,7 @@ class InputHandler(Node):
             depth=1,
         )
 
-        self.publisher = self.create_publisher(
-            Twist, "/cmd_vel/teleop", quality)
+        self.publisher = self.create_publisher(Twist, "/cmd_vel/teleop", quality)
 
         self._client = self.create_client(ChangeState, "change_state")
         self.req = None
@@ -85,9 +84,9 @@ class InputHandler(Node):
         finally:
             print("stopped full")
 
-    def on_device_event(
-        self, device: InputDevice, snapshot: dict
-    ):  # passes snapshot of state to prevent race conditions of reading the active state
+    def on_device_event(self, device: InputDevice, snapshot: dict):
+        # passes snapshot of state to prevent
+        # race conditions of reading the active state
         if not device.active:
             # see thread-safe issue on _watchdog(), has the potential to eat inputs,
             # possibly safe to remove condition as by recieving a event means the device
@@ -105,9 +104,11 @@ class InputHandler(Node):
 
         self.publisher.publish(self._focus.transform(snapshot))
 
-    # this guy is NOT thread-safe and can cause a race-condition while attempting to mark the device inactive HOWEVER
-    # that's okkkkkk. a zero twist message will STILL be published (preventing hanging) and focus will be lost essentially
-    # eating a single input which kinda sucks but might happen. just call it a skill issue.
+    # this guy is NOT thread-safe and can cause a race-condition while
+    # attemptingto mark the device inactive HOWEVER that's okkkkkk. a
+    # zero twist message will STILL be published (preventing hanging) and
+    # focus will be lost essentially eating a single input which kinda
+    # sucks but might happen. just call it a skill issue.
     def _watchdog(self):
         if self._focus:
             if self._focus.heartbeat():
@@ -148,7 +149,7 @@ class InputHandler(Node):
         return future.result().success
 
 
-def main(args=None):
+def main(_):
     rclpy.init()
 
     handler = InputHandler(None)
@@ -169,7 +170,7 @@ def main(args=None):
         rclpy.shutdown()
 
 
-def controller(args=None):
+def controller(_):
     rclpy.init()
 
     handler = InputHandler(None)
@@ -190,7 +191,7 @@ def controller(args=None):
         rclpy.shutdown()
 
 
-def keyboard(args=None):
+def keyboard(_):
     rclpy.init()
 
     handler = InputHandler(None)

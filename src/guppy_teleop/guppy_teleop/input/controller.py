@@ -124,8 +124,7 @@ class Controller(InputDevice):
             "right_thumb": False,  # True or False
         }
 
-        print(
-            f"'{self.name}' initialized as {self.mode.name} at {self.priority.name}!")
+        print(f"'{self.name}' initialized as {self.mode.name} at {self.priority.name}!")
 
     async def start(self):
         async for event in self._device.async_read_loop():
@@ -139,24 +138,25 @@ class Controller(InputDevice):
             if not self._command_mode and event.code in self.COMMAND_KEYS:
                 self._command_mode = True
 
-            if self._command_mode:
-                if (event.value) == KeyEvent.key_down:
-                    active_keys = self._device.active_keys()
+            if self._command_mode and (event.value) == KeyEvent.key_down:
+                active_keys = self._device.active_keys()
 
-                    if any(key in active_keys for key in self.COMMAND_KEYS):
-                        for command, keys in self.COMMAND_MAP.items():
-                            if event.code not in keys:
-                                continue
+                if any(key in active_keys for key in self.COMMAND_KEYS):
+                    for command, keys in self.COMMAND_MAP.items():
+                        if event.code not in keys:
+                            continue
 
-                            if all(key in active_keys for key in keys):
-                                command()  # remember to use try catch in your commands or it will crash the whole device!
+                        if all(key in active_keys for key in keys):
+                            command()
+                            # remember to use try catch in your commands
+                            # or it will crash the whole device!
 
+                    return
+                else:
+                    self._command_mode = False
+
+                    if event.code in self.COMMAND_KEYS:
                         return
-                    else:
-                        self._command_mode = False
-
-                        if event.code in self.COMMAND_KEYS:
-                            return
 
             if (code_name := self._internal_code_map[event.code]) is not None:
                 if self.mode != DeviceMode.INPUT:
@@ -203,10 +203,8 @@ class Controller(InputDevice):
             float(snapshot["left_stick_y"]), self.LINEAR_MULTIPLIER[2]
         )
 
-        twist.angular.x = - \
-            float(snapshot["dpad_y"]) * self.ANGULAR_MULTIPLIER[0]
-        twist.angular.y = - \
-            float(snapshot["dpad_x"]) * self.ANGULAR_MULTIPLIER[1]
+        twist.angular.x = -float(snapshot["dpad_y"]) * self.ANGULAR_MULTIPLIER[0]
+        twist.angular.y = -float(snapshot["dpad_x"]) * self.ANGULAR_MULTIPLIER[1]
         twist.angular.z = (
             float(snapshot["left_trigger"]) - float(snapshot["right_trigger"])
         ) * self.ANGULAR_MULTIPLIER[2]
@@ -244,11 +242,12 @@ class Controller(InputDevice):
             value,
         ) in (
             self._state.items()
-            # TODO inefficient lookup, use NORMALIZE map to get EV_ABS keys from state anduse self._device.active_keys() for all else
+            # TODO inefficient lookup, use NORMALIZE map to get EV_ABS keys from
+            # state and use self._device.active_keys() for all else
         ):
             if not value:
                 continue
-            elif (normalize := self.NORMALIZE_MAP.get(key)) is not None:
+            elif (_ := self.NORMALIZE_MAP.get(key)) is not None:
                 if self.stick_deadzone(float(value)):
                     return True
             else:

@@ -101,8 +101,7 @@ class Keyboard(InputDevice):
             "right": KeyEvent.key_up,
         }
 
-        print(
-            f"'{self.name}' initialized as {self.mode.name} as {self.priority.name}!")
+        print(f"'{self.name}' initialized as {self.mode.name} as {self.priority.name}!")
 
     async def start(self):
         async for event in self._device.async_read_loop():
@@ -113,28 +112,32 @@ class Keyboard(InputDevice):
             return
 
         if event.type == ecodes.EV_KEY:
-            if not self._command_mode:
-                if event.code in self.COMMAND_KEYS and event.value == KeyEvent.key_down:
-                    self._command_mode = True
+            if (
+                not self._command_mode
+                and event.code in self.COMMAND_KEYS
+                and event.value == KeyEvent.key_down
+            ):
+                self._command_mode = True
 
-            if self._command_mode:
-                if event.value == KeyEvent.key_down:
-                    active_keys = self._device.active_keys()
+            if self._command_mode and event.value == KeyEvent.key_down:
+                active_keys = self._device.active_keys()
 
-                    if any(key in active_keys for key in self.COMMAND_KEYS):
-                        for command, keys in self.COMMAND_MAP.items():
-                            if event.code not in keys:
-                                continue
+                if any(key in active_keys for key in self.COMMAND_KEYS):
+                    for command, keys in self.COMMAND_MAP.items():
+                        if event.code not in keys:
+                            continue
 
-                            if all(key in active_keys for key in keys):
-                                command()  # remember to use try catch in your commands or it will crash with no error!
+                        if all(key in active_keys for key in keys):
+                            command()
+                            # remember to use try catch in your commands
+                            # or it will crash with no error!
 
+                    return
+                else:
+                    self._command_mode = False
+
+                    if event.code in self.COMMAND_KEYS:
                         return
-                    else:
-                        self._command_mode = False
-
-                        if event.code in self.COMMAND_KEYS:
-                            return
 
             if (code_name := self._internal_code_map[event.code]) is not None:
                 if self.mode != DeviceMode.INPUT:
