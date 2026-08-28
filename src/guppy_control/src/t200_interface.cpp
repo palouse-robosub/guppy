@@ -12,7 +12,7 @@ bool T200Interface::setup_can() {
   if (ioctl(sock_, SIOCGIFINDEX, &ifr) < 0)
     return false;
 
-  struct sockaddr_can addr{};
+  struct sockaddr_can addr {};
   addr.can_family = AF_CAN;
   addr.can_ifindex = ifr.ifr_ifindex;
 
