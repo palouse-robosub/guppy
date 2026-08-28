@@ -3,6 +3,7 @@ from geometry_msgs.msg import Twist
 from rclpy.node import Node
 from std_msgs.msg import Float32MultiArray, Int32MultiArray, String
 
+
 class Translator(Node):
     def __init__(self):
         super().__init__("translator")
@@ -26,17 +27,17 @@ class Translator(Node):
         self.controller_name = None
 
     def dpad_callback(self, msg):
-        self.get_logger().debug("Received dpad message: %s" % msg.data)
+        self.get_logger().debug(f"Received dpad message: {msg.data}")
         self.controller_state["dpad"] = msg.data
         self.update_controller_state()
 
     def axes_callback(self, msg):
-        self.get_logger().debug("Received axes message: %s" % msg.data)
+        self.get_logger().debug(f"Received axes message: {msg.data}")
         self.controller_state["axes"] = msg.data
         self.update_controller_state()
 
     def button_callback(self, msg):
-        self.get_logger().debug("Received button message: %s" % msg.data)
+        self.get_logger().debug(f"Received button message: {msg.data}")
         self.controller_state["buttons"] = msg.data
         self.update_controller_state()
 
@@ -51,7 +52,8 @@ class Translator(Node):
             and self.controller_name is not None
         ):
             self.publish_twist()
-            self.controller_state = {"dpad": None, "axes": None, "buttons": None}
+            self.controller_state = {
+                "dpad": None, "axes": None, "buttons": None}
 
     def publish_twist(self):
         if (
@@ -69,35 +71,44 @@ class Translator(Node):
             if twist is not None:
                 self.publisher.publish(twist)
 
+
 def logitech_twist(controller_state):
     twist = Twist()
 
-    twist.linear.x = -controller_state["axes"][4] if abs(controller_state["axes"][4]) > 0.05 else 0.0 # right stick vertical
-    twist.linear.y = -controller_state["axes"][3] if abs(controller_state["axes"][3]) > 0.05 else 0.0 # right stick horizontal
-    twist.linear.z = -controller_state["axes"][1] if abs(controller_state["axes"][1]) > 0.05 else 0.0 # left stick vertical
-    twist.angular.y = -float(controller_state["dpad"][1]) # pitch
-    twist.angular.x = -float(controller_state["dpad"][0]) # roll
-    yaw_r = controller_state["axes"][5] # right trigger
-    yaw_l = controller_state["axes"][2] # left trigger
+    twist.linear.x = (
+        -controller_state["axes"][4] if abs(controller_state["axes"][4]) > 0.05 else 0.0
+    )  # right stick vertical
+    twist.linear.y = (
+        -controller_state["axes"][3] if abs(controller_state["axes"][3]) > 0.05 else 0.0
+    )  # right stick horizontal
+    twist.linear.z = (
+        -controller_state["axes"][1] if abs(controller_state["axes"][1]) > 0.05 else 0.0
+    )  # left stick vertical
+    twist.angular.y = -float(controller_state["dpad"][1])  # pitch
+    twist.angular.x = -float(controller_state["dpad"][0])  # roll
+    yaw_r = controller_state["axes"][5]  # right trigger
+    yaw_l = controller_state["axes"][2]  # left trigger
     yaw_r = (yaw_r + 1) / 2
     yaw_l = (yaw_l + 1) / 2 * (-1)
-    twist.angular.z = (yaw_r + yaw_l)
+    twist.angular.z = yaw_r + yaw_l
 
     return twist
 
+
 def series_x_twist(controller_state):
     twist = Twist()
-    twist.linear.x = controller_state["axes"][4] # right stick vertical
-    twist.linear.y = controller_state["axes"][3] # right stick horizontal
-    twist.linear.z = -controller_state["axes"][1] # left stick
-    twist.angular.y = float(controller_state["dpad"][1]) # pitch
-    twist.angular.x = -float(controller_state["dpad"][0]) # roll
-    yaw_r = controller_state["axes"][5] # right trigger
-    yaw_l = controller_state["axes"][2] # left trigger
+    twist.linear.x = controller_state["axes"][4]  # right stick vertical
+    twist.linear.y = controller_state["axes"][3]  # right stick horizontal
+    twist.linear.z = -controller_state["axes"][1]  # left stick
+    twist.angular.y = float(controller_state["dpad"][1])  # pitch
+    twist.angular.x = -float(controller_state["dpad"][0])  # roll
+    yaw_r = controller_state["axes"][5]  # right trigger
+    yaw_l = controller_state["axes"][2]  # left trigger
     yaw_r = (yaw_r + 1) / 2
     yaw_l = (yaw_l + 1) / 2 * (-1)
     twist.angular.z = -(yaw_r + yaw_l)
     return twist
+
 
 def main(Args=None):
     rclpy.init(args=Args)

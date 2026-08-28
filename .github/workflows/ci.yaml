@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   lint:
-    name: Run linters
+    name: Lint
     runs-on: ubuntu-latest
 
     steps:
@@ -31,7 +31,7 @@ jobs:
           python-version: 3.13
 
       - name: Install Python dependencies
-        run: pip install black flake8
+        run: pip install black flake8 ruff
 
       - name: Install ClangFormat and xmllint
         run: sudo apt-get install -y clang-format
@@ -39,8 +39,8 @@ jobs:
       - name: Run Code Linters
         uses: wearerequired/lint-action@v3
         with:
-          black: true
-          flake8: true
+          ruff: true
+          ruff_args: --select E,F,W,C90,B,SIM,ARG,PIE,PL
           clang_format: true
 
   commit_names:
@@ -54,7 +54,7 @@ jobs:
           allowed-commit-types: "feat,fix,chore"
 
   get_changes:
-      name: Evaluate Changed files
+      name: Evaluate Changed Files
       runs-on: ubuntu-24.04
       outputs:
         code: ${{ steps.filter.outputs.code }}
@@ -79,6 +79,7 @@ jobs:
 
 
   build_and_test_ros2:
+    name: Build and Test ROS 2 Jazzy
     needs: [lint, commit_names, get_changes]
     if: needs.get_changes.outputs.code == 'true'
     runs-on: ubuntu-24.04

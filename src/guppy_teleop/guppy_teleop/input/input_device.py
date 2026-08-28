@@ -1,17 +1,23 @@
-from time import time
-
 from abc import ABC, abstractmethod
+from time import time
 
 from geometry_msgs.msg import Twist
 
-from guppy_teleop.util.device_priority import DevicePriority
 from guppy_teleop.util.device_mode import DeviceMode
+from guppy_teleop.util.device_priority import DevicePriority
+
 
 # TODO replace enabled with a mode: DISABLED, COMMAND, INPUT so that a device can only send commands (ie. the keyboard so it doesn't send things while typing)
 class InputDevice(ABC):
-    def __init__(self, mode: DeviceMode = DeviceMode.DISABLED, name: str = "Unkown Input Device", priority: DevicePriority = DevicePriority.MEDIUM):
-        self.handler = None # bad design but whatever, makes it convienient to call commands without passing in lots of callbacks
-        
+    def __init__(
+        self,
+        mode: DeviceMode = DeviceMode.DISABLED,
+        name: str = "Unkown Input Device",
+        priority: DevicePriority = DevicePriority.MEDIUM,
+    ):
+        # bad design but whatever, makes it convienient to call commands without passing in lots of callbacks
+        self.handler = None
+
         self.mode = mode
         self.name = name
         self.priority = priority
@@ -29,29 +35,27 @@ class InputDevice(ABC):
 
     def _mark_inactive(self):
         self.active = False
-    
-    def _cycle_mode(self, *skip: DeviceMode): # TODO devices need better control rather than just cycling, or the method of cycling is still available while disabled      
+
+    def _cycle_mode(
+        self, *skip: DeviceMode
+    ):  # TODO devices need better control rather than just cycling, or the method of cycling is still available while disabled
         if set(DeviceMode) == set(skip):
             raise AssertionError("cannot skip all items in cycle!")
-        
+
         mode = self.mode.next()
-        while (mode in skip):
+        while mode in skip:
             mode = mode.next()
-        
+
         self.mode = mode
 
     @abstractmethod
-    async def start(self):
-        ...
+    async def start(self): ...
 
     @abstractmethod
-    def transform(self, snapshot: dict) -> Twist:
-        ...
+    def transform(self, snapshot: dict) -> Twist: ...
 
     @abstractmethod
-    def package(self, snapshot: dict) -> dict:
-        ...
-    
+    def package(self, snapshot: dict) -> dict: ...
+
     @abstractmethod
-    def heartbeat(self) -> bool:
-        ...
+    def heartbeat(self) -> bool: ...

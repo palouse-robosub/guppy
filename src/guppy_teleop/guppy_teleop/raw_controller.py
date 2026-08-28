@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import Any
 
 import pygame
 import rclpy
@@ -22,7 +22,7 @@ class RawController:
         pygame.joystick.init()
         self._joystick = None
 
-        controllers: List[JoystickType] = []
+        controllers: list[JoystickType] = []
 
         # search for controllers
         for i in range(pygame.joystick.get_count()):
@@ -53,16 +53,18 @@ class RawController:
         self.numbuttons = self._joystick.get_numbuttons()
         self.numhats = self._joystick.get_numhats()
 
-    def update(self) -> Dict[str, Any]:
+    def update(self) -> dict[str, Any]:
         if self._joystick is None:
             raise ValueError("No controller found")
         pygame.event.pump()
         state = {}
-        state["axes"] = [self._joystick.get_axis(i) for i in range(self.numaxes)]
+        state["axes"] = [self._joystick.get_axis(
+            i) for i in range(self.numaxes)]
         state["buttons"] = [
             self._joystick.get_button(i) for i in range(self.numbuttons)
         ]
-        state["hats"] = [self._joystick.get_hat(i) for i in range(self.numhats)]
+        state["hats"] = [self._joystick.get_hat(
+            i) for i in range(self.numhats)]
         state["name"] = self.gamepad_name
         return state
 
@@ -71,9 +73,12 @@ class RawControllerPublisher(Node):
     def __init__(self):
         super().__init__("raw_controller")
         # create publishers
-        self.dpad_publisher = self.create_publisher(Int32MultiArray, "dpad", 10)
-        self.axes_publisher = self.create_publisher(Float32MultiArray, "axes", 10)
-        self.button_publisher = self.create_publisher(Int32MultiArray, "buttons", 10)
+        self.dpad_publisher = self.create_publisher(
+            Int32MultiArray, "dpad", 10)
+        self.axes_publisher = self.create_publisher(
+            Float32MultiArray, "axes", 10)
+        self.button_publisher = self.create_publisher(
+            Int32MultiArray, "buttons", 10)
         self.name_publisher = self.create_publisher(String, "gamepad_name", 10)
 
         self.controller = RawController()
@@ -94,10 +99,10 @@ class RawControllerPublisher(Node):
             name_msg = String()
             name_msg.data = state["name"]
             self.name_publisher.publish(name_msg)
-            self.get_logger().debug("Published dpad: %s" % str(dpad_msg.data))
-            self.get_logger().debug("Published axes: %s" % str(axes_msg.data))
-            self.get_logger().debug("Published buttons: %s" % str(button_msg.data))
-            self.get_logger().debug("Published name: %s" % str(name_msg.data))
+            self.get_logger().debug(f"Published dpad: {dpad_msg.data!s}")
+            self.get_logger().debug(f"Published axes: {axes_msg.data!s}")
+            self.get_logger().debug(f"Published buttons: {button_msg.data!s}")
+            self.get_logger().debug(f"Published name: {name_msg.data!s}")
         except Exception as e:
             self.get_logger().error(f"Controller read failed: {e}")
 

@@ -1,10 +1,11 @@
-from pathlib import Path
 import json
 from importlib.resources import files
+from pathlib import Path
+
+from PySide6.QtCore import Property, QObject, Signal, Slot
 
 WORKSPACES_PATH = files("guppy_teleop.frontend.workspaces")
 
-from PySide6.QtCore import QObject, Signal, Slot, Property
 
 class WorkspaceManager(QObject):
     workspaceLoaded = Signal("QVariantMap")
@@ -20,8 +21,9 @@ class WorkspaceManager(QObject):
 
     @Slot(str)
     def loadWorkspace(self, workspace_id: str):
-        self.loadWorkspaceFromUrl(WORKSPACES_PATH.joinpath(f"{workspace_id}.json"))
-    
+        self.loadWorkspaceFromUrl(
+            WORKSPACES_PATH.joinpath(f"{workspace_id}.json"))
+
     @Slot(str)
     def loadWorkspaceFromUrl(self, filepath):
         path = Path(filepath)
@@ -29,7 +31,7 @@ class WorkspaceManager(QObject):
         try:
             with open(path) as file:
                 data = json.load(file)
-            
+
             self.workspaceLoaded.emit(data)
         except FileNotFoundError:
             print("workspace not found!")
@@ -54,11 +56,13 @@ class WorkspaceManager(QObject):
             except Exception:
                 meta = {}
 
-            entries.append({
-                "id": stem,
-                "name": meta.get("name", stem.replace("_", " ").title()),
-                "icon": meta.get("icon", " ")
-            })
+            entries.append(
+                {
+                    "id": stem,
+                    "name": meta.get("name", stem.replace("_", " ").title()),
+                    "icon": meta.get("icon", " "),
+                }
+            )
 
         return entries
 

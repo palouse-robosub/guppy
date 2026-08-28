@@ -41,13 +41,15 @@ bool setup_can_socket() {
   return true;
 }
 
-void send(const std::shared_ptr<guppy_msgs::srv::SendCan::Request> request, std::shared_ptr<guppy_msgs::srv::SendCan::Response> response) {
+void send(const std::shared_ptr<guppy_msgs::srv::SendCan::Request> request,
+          std::shared_ptr<guppy_msgs::srv::SendCan::Response> response) {
   can_frame frame{};
   frame.can_id = request->id;
   frame.can_dlc = request->data.size();
 
   if (frame.can_dlc > 8) {
-    RCLCPP_ERROR(rclcpp::get_logger("can_tx"), "CAN payload too large (%zu bytes)", request->data.size());
+    RCLCPP_ERROR(rclcpp::get_logger("can_tx"),
+                 "CAN payload too large (%zu bytes)", request->data.size());
     response->written = -1;
     return;
   }
@@ -73,7 +75,12 @@ int main(int argc, char** argv) {
   auto node = rclcpp::Node::make_shared("can_tx");
 
   auto service = node->create_service<guppy_msgs::srv::SendCan>(
-      "can_tx", [](const std::shared_ptr<guppy_msgs::srv::SendCan::Request> request, std::shared_ptr<guppy_msgs::srv::SendCan::Response> response) { send(request, response); }, 10);
+      "can_tx",
+      [](const std::shared_ptr<guppy_msgs::srv::SendCan::Request> request,
+         std::shared_ptr<guppy_msgs::srv::SendCan::Response> response) {
+        send(request, response);
+      },
+      10);
 
   RCLCPP_INFO(node->get_logger(), "CAN TX service ready");
 

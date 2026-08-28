@@ -1,17 +1,16 @@
-import rclpy
-from rclpy.node import Node
-from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy, HistoryPolicy
-
-from guppy_msgs.msg import State
-from guppy_msgs.srv._change_state import ChangeState
-
-from guppy_teleop.frontend.widgets.widget import Widget
-
-from PySide6.QtCore import Property, Signal, Slot
-
 from enum import Enum
 
-class ValidState(Enum): #TODO replace with State constants directly
+import rclpy
+from guppy_msgs.srv._change_state import ChangeState
+from PySide6.QtCore import Property, Signal, Slot
+from rclpy.node import Node
+from rclpy.qos import DurabilityPolicy, HistoryPolicy, QoSProfile, ReliabilityPolicy
+
+from guppy_msgs.msg import State
+from guppy_teleop.frontend.widgets.widget import Widget
+
+
+class ValidState(Enum):  # TODO replace with State constants directly
     STARTUP = 0
     HOLDING = 1
     NAV = 2
@@ -20,12 +19,13 @@ class ValidState(Enum): #TODO replace with State constants directly
     DISABLED = 5
     FAULT = 6
 
+
 class StateWidget(Node, Widget):
     stateChanged = Signal()
 
     @property
     def qml_name(self) -> str:
-        return "stateWidget"    
+        return "stateWidget"
 
     def __init__(self, parent=None):
         Node.__init__(self, "state_widget")
@@ -43,7 +43,7 @@ class StateWidget(Node, Widget):
             reliability=ReliabilityPolicy.RELIABLE,
             durability=DurabilityPolicy.TRANSIENT_LOCAL,
             history=HistoryPolicy.KEEP_LAST,
-            depth=1
+            depth=1,
         )
 
         self.create_subscription(State, "state", self._on_state, state_quality)
@@ -57,10 +57,10 @@ class StateWidget(Node, Widget):
         message = State()
         if (valid_state := getattr(ValidState, new_state, None)) is None:
             return False
-        
-        if (self.req is None):
+
+        if self.req is None:
             return False
-        
+
         message.state = valid_state.value
         self.req.new_state = message
 
@@ -68,11 +68,10 @@ class StateWidget(Node, Widget):
         rclpy.spin_until_future_complete(self, future)
         return future.result().success
 
-    
     def _on_state(self, message: State):
         try:
             self._state = ValidState(message.state).name
         except ValueError:
             self._state = "UNKNOWN"
-        
+
         self.stateChanged.emit()
