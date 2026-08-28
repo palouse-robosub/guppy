@@ -39,6 +39,7 @@ jobs:
       - name: Run Code Linters
         uses: wearerequired/lint-action@v3
         with:
+          continue_on_error: false
           ruff: true
           ruff_args: --select E,F,W,C90,B,SIM,ARG,PIE,PL
           clang_format: true
