@@ -1,0 +1,105 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["**"]
+
+permissions:
+  checks: write
+  contents: write
+
+jobs:
+  lint:
+    name: Run linters
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v7
+
+      - name: Install xmllint
+        run: sudo apt-get install -y libxml2-utils
+      
+      - name: Run XML Linters
+        run: xmllint --noout $(find src -name "*.sdf" -o -name "*.urdf" -o -name "*.xml")
+
+      - name: Set up Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.13
+
+      - name: Install Python dependencies
+        run: pip install black flake8
+
+      - name: Install ClangFormat and xmllint
+        run: sudo apt-get install -y clang-format
+
+      - name: Run Code Linters
+        uses: wearerequired/lint-action@v3
+        with:
+          black: true
+          flake8: true
+          clang_format: true
+
+  commit_names:
+    name: Conventional Commits
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: webiny/action-conventional-commits@v1.4.2
+        with:
+          allowed-commit-types: "feat,fix,chore"
+
+  get_changes:
+      name: Evaluate Changed files
+      runs-on: ubuntu-24.04
+      outputs:
+        code: ${{ steps.filter.outputs.code }}
+      steps:
+        - name: Checkout guppy 
+          uses: actions/checkout@v7
+
+        - name: Filter for code changes
+          uses: dorny/paths-filter@v3
+          id: filter
+          with:
+            filters: |
+              code:
+                - '**/*.cpp'
+                - '**/*.hpp'
+                - '**/*.py'
+                - '**/CMakeLists.txt'
+                - '**/package.xml'
+                - 'flake.nix'
+                - 'flake.lock'
+                - '.github/workflows/**'
+
+
+  build_and_test_ros2:
+    needs: [lint, commit_names, get_changes]
+    if: needs.get_changes.outputs.code == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout guppy
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+          submodules: recursive
+
+      - name: Install Determinate Nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Cache Nix Store
+        uses: cachix/cachix-action@v15
+        with:
+          name: palouse-robosub
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+
+      - name: Check Nix Flake
+        uses: DeterminateSystems/flake-checker-action@main
+
+      - name: Build and run tests
+        run: nix develop --accept-flake-config --command bash -c "./.github/workflows/diff_and_build.sh"
