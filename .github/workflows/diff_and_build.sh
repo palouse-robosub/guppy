@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-cd vendor/spinnaker-sdk && ./docker_install.sh && cd ../..
+cd vendor/spinnaker-sdk ; sudo ./actions_install.sh ; cd ../..
 
 PKGS=$(colcon list --names-only)
 
