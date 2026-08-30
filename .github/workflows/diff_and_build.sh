@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+cd /workspaces/guppy/vendor/spinnaker-sdk && ./docker_install.sh && cd ../..
+
 PKGS=$(colcon list --names-only)
 
 CHANGED_FILES=$(git diff --name-only HEAD~1...HEAD)
