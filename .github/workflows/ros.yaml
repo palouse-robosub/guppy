@@ -38,6 +38,7 @@ jobs:
         with:
           fetch-depth: 2
           submodules: recursive
+          token: ${{ secrets.SUBMODULE_PAT }}
 
       - name: Install Determinate Nix
         uses: DeterminateSystems/nix-installer-action@main
