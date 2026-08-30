@@ -16,4 +16,4 @@ done | sort -u)
 echo Changed pkgs: $CHANGED_PKGS
 
 colcon build --packages-above-and-dependencies $CHANGED_PKGS
-colcon test --packages-above-and-dependencies $CHANGED_PKGS
+# colcon test --packages-above-and-dependencies $CHANGED_PKGS

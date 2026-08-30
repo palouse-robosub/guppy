@@ -12,26 +12,26 @@ using namespace Spinnaker::GenICam;
 using namespace std;
 
 enum StreamMode {
-  STREAM_MODE_TELEDYNE_GIGE_VISION,  // windows
-  STREAM_MODE_PGRLWF,                // legacy windows
-  STREAM_MODE_SOCKET,                // macos and linux
+    STREAM_MODE_TELEDYNE_GIGE_VISION,    // windows
+    STREAM_MODE_PGRLWF,                  // legacy windows
+    STREAM_MODE_SOCKET,                  // macos and linux
 };
 
 namespace camera_manager {
 
 class CameraManager {
- public:
-  CameraManager();
-  ~CameraManager();
+  public:
+    CameraManager();
+    ~CameraManager();
 
-  SystemPtr system;
-  CameraList camList;
+    SystemPtr  system;
+    CameraList camList;
 
-  static int setStreamMode(CameraPtr pCam, StreamMode mode);
+    static int setStreamMode(CameraPtr pCam, StreamMode mode);
 
-  static void takePicture(CameraPtr pCam);
+    static void takePicture(CameraPtr pCam);
 };
 
-}  // namespace camera_manager
+}    // namespace camera_manager
 
-#endif  // GUPPY_VISION_CAMERA_UTILS_HPP
+#endif    // GUPPY_VISION_CAMERA_UTILS_HPP
