@@ -139,7 +139,7 @@ jobs:
             install/vectornav/
             install/vectornav_msgs/
             install/waterlinked_dvl_driver/
-          key: ${{ runner.os }}-vendor
+          key: ${{ runner.os }}-vendor-${{ hashFiles('flake.lock', 'flake.nix', 'vendor/**') }}
       
       - name: Debug Cache Restore
         run: find build
