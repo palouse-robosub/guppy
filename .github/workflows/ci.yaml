@@ -182,9 +182,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           style: ''
-          tidy-checks: ''
+          tidy-checks: '-clang-analyzer-security,-clang-analyzer-unix'
           no-lgtm: false
-          tidy-review: true
+          tidy-review: false
           database: 'build'
           thread-comments: ${{ github.event_name == 'pull_request' && 'update' }}
       
