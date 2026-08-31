@@ -37,7 +37,7 @@ jobs:
       - name: Install clang-format
         run: sudo apt-get install -y clang-format
 
-      - name: Python Lint
+      - name: Python Format & Lint
         uses: wearerequired/lint-action@v3
         with:
           continue_on_error: false
@@ -45,31 +45,20 @@ jobs:
           ruff_args: --select E,F,W,B,SIM,ARG,PIE
           black: true
 
-      - name: Restore Build
-        id: cache-buld-restore
-        uses: actions/cache/restore@v6
-        with:
-          path: |
-            build/
-          key: ${{ runner.os }}-build
-
       - name: C/C++ Format
         uses: cpp-linter/cpp-linter-action@v2
         id: linter
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          style: ''  # Use .clang-format config file
-          tidy-checks: ''
-          no-lgtm: false
-          tidy-review: true
+          style: 'file'  # Use .clang-format config file
+          tidy-checks: '-*'
           format-review: true
-          database: 'build'
           thread-comments: ${{ github.event_name == 'pull_request' && 'update' }}
 
-      # - name: Fail Fast
-      #   if: steps.linter.outputs.checks-failed > 0
-      #   run: exit 1
+      - name: Fail Fast
+        if: steps.linter.outputs.checks-failed > 0
+        run: exit 1
 
   commit_names:
     name: Conventional Commits
@@ -107,7 +96,7 @@ jobs:
 
 
   build_and_test_ros2:
-    name: Build, Test, and Lint#2
+    name: Build and Test ROS / Lint
     needs: [lint, commit_names, get_changes]
     if: needs.get_changes.outputs.code == 'true'
     runs-on: ubuntu-24.04
@@ -185,3 +174,20 @@ jobs:
             build/
             
           key: ${{ runner.os }}-build
+
+      - name: C/C++ Lint
+        uses: cpp-linter/cpp-linter-action@v2
+        id: linter
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          style: ''
+          tidy-checks: ''
+          no-lgtm: false
+          tidy-review: true
+          database: 'build'
+          thread-comments: ${{ github.event_name == 'pull_request' && 'update' }}
+      
+      - name: Fail Fast
+        if: steps.linter.outputs.checks-failed > 0
+        run: exit 1
