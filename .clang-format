@@ -1,4 +1,4 @@
----
+--- # ryden-format:
 BasedOnStyle: LLVM
 AlignAfterOpenBracket: BlockIndent
 AlignArrayOfStructures: Left
