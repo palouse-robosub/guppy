@@ -176,7 +176,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           style: ''
-          tidy-checks: '-clang-analyzer-security,-clang-analyzer-unix'
+          tidy-checks: '-*'
           no-lgtm: false
           tidy-review: false
           database: 'build'
