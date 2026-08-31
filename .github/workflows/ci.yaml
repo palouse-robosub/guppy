@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   lint:
-    name: Lint
+    name: Lint / Format
     runs-on: ubuntu-latest
 
     steps:
@@ -53,7 +53,7 @@ jobs:
           style: 'file' # Use .clang-format config file. 
           tidy-checks: '-*' # disable clang-tidy checks. 
 
-      - name: Fail fast?!
+      - name: Fail Fast
         if: steps.linter.outputs.clang-format-checks-failed > 0
         run: exit 1
 
@@ -117,8 +117,51 @@ jobs:
       - name: Check Nix Flake
         uses: DeterminateSystems/flake-checker-action@main
 
+      - name: Restore Vendor
+        id: cache-vendor-restore
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            build/behaviortree_cpp/
+            build/behaviortree_ros2/
+            build/libwaterlinked/
+            build/nlohmann_json/
+            build/vectornav/
+            build/vectornav_msgs/
+            build/waterlinked_dvl_driver/
+            install/behaviortree_cpp/
+            install/behaviortree_ros2/
+            install/libwaterlinked/
+            install/nlohmann_json/
+            install/vectornav/
+            install/vectornav_msgs/
+            install/waterlinked_dvl_driver/
+          key: ${{ runner.os }}-vendor
+
       - name: Build and run tests
         run: nix develop --accept-flake-config --command bash -c "./.github/workflows/diff_and_build.sh"
+
+      - name: Save Vendor
+        id: cache-vendor-save
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            build/behaviortree_cpp/
+            build/behaviortree_ros2/
+            build/libwaterlinked/
+            build/nlohmann_json/
+            build/vectornav/
+            build/vectornav_msgs/
+            build/waterlinked_dvl_driver/
+            install/behaviortree_cpp/
+            install/behaviortree_ros2/
+            install/libwaterlinked/
+            install/nlohmann_json/
+            install/vectornav/
+            install/vectornav_msgs/
+            install/waterlinked_dvl_driver/
+            
+          key: ${{ steps.cache-vendor-restore.outputs.cache-primary-key }}
 
       - name: Install clang-tidy
         run: sudo apt-get install -y clang-tidy
@@ -131,7 +174,9 @@ jobs:
         with:
           style: ''  # Use .clang-format config file
           tidy-checks: ''
+          no-lgtm: false
+          databse: 'build'
           thread-comments: ${{ github.event_name == 'pull_request' && 'update' }}
-      - name: Fail fast?!
+      - name: Fail Fast
         if: steps.linter.outputs.checks-failed > 0
         run: exit 1
