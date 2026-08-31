@@ -9,7 +9,6 @@ on:
 permissions:
   checks: write
   contents: write
-  metadata: read 
   pull-requests: write
 
 jobs:
