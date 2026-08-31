@@ -3,7 +3,7 @@
 using namespace camera_manager;
 
 CameraManager::CameraManager() {
-    system = System::GetInstance();
+    system  = System::GetInstance();
     camList = system->GetCameras();
 }
 
@@ -21,16 +21,19 @@ void CameraManager::takePicture(CameraPtr pCam) {
     pCam->Init();
     INodeMap& nodeMap = pCam->GetNodeMap();
 
-    cout << "Acquiring single image from " << nodeMapTLDevice.GetDeviceName() << endl;
+    cout << "Acquiring single image from " << nodeMapTLDevice.GetDeviceName()
+         << endl;
 
     pCam->BeginAcquisition();
 
-    gcstring deviceSerialNumber("");
+    gcstring   deviceSerialNumber("");
     CStringPtr ptrStringSerial = nodeMapTLDevice.GetNode("DeviceSerialNumber");
-    deviceSerialNumber = ptrStringSerial->GetValue();
+    deviceSerialNumber         = ptrStringSerial->GetValue();
 
     ImageProcessor processor;
-    processor.SetColorProcessing(SPINNAKER_COLOR_PROCESSING_ALGORITHM_HQ_LINEAR);
+    processor.SetColorProcessing(
+        SPINNAKER_COLOR_PROCESSING_ALGORITHM_HQ_LINEAR
+    );
 
     ImagePtr pResultImage = pCam->GetNextImage(1000);
 
@@ -38,20 +41,19 @@ void CameraManager::takePicture(CameraPtr pCam) {
 
     const size_t height = pResultImage->GetHeight();
 
-    cout << "Grabbed image: width = " << width << ", height = " << height << endl;
+    cout << "Grabbed image: width = " << width << ", height = " << height
+         << endl;
 
-    // ImagePtr convertedImage = processor.Convert(pResultImage, PixelFormat_BayerRG8);
-    // convertedImage->Save("saved.png");
+    // ImagePtr convertedImage = processor.Convert(pResultImage,
+    // PixelFormat_BayerRG8); convertedImage->Save("saved.png");
 
     std::cout << pResultImage->GetData() << std::endl;
 
     pResultImage->Release();
     pCam->EndAcquisition();
-
 }
 
-int CameraManager::setStreamMode(CameraPtr pCam, StreamMode mode)
-{
+int CameraManager::setStreamMode(CameraPtr pCam, StreamMode mode) {
     int result = 0;
 
     // Retrieve Stream nodemap
@@ -61,30 +63,23 @@ int CameraManager::setStreamMode(CameraPtr pCam, StreamMode mode)
     // Skip setting stream mode if the node is inaccessible.
     const CEnumerationPtr ptrStreamMode = sNodeMap.GetNode("StreamMode");
     if (!IsReadable(ptrStreamMode) || !IsWritable(ptrStreamMode))
-    {
         return 0;
-    }
 
     gcstring streamMode;
-    switch (mode)
-    {
-        case STREAM_MODE_PGRLWF:
-            streamMode = "LWF";
-            break;
-        case STREAM_MODE_SOCKET:
-            streamMode = "Socket";
-            break;
-        case STREAM_MODE_TELEDYNE_GIGE_VISION:
-        default:
-            streamMode = "TeledyneGigeVision";
+    switch (mode) {
+    case STREAM_MODE_PGRLWF:               streamMode = "LWF"; break;
+    case STREAM_MODE_SOCKET:               streamMode = "Socket"; break;
+    case STREAM_MODE_TELEDYNE_GIGE_VISION:
+    default:                               streamMode = "TeledyneGigeVision";
     }
 
     // Retrieve the desired entry node from the enumeration node
-    const CEnumEntryPtr ptrStreamModeCustom = ptrStreamMode->GetEntryByName(streamMode);
-    if (!IsReadable(ptrStreamModeCustom))
-    {
+    const CEnumEntryPtr ptrStreamModeCustom =
+        ptrStreamMode->GetEntryByName(streamMode);
+    if (!IsReadable(ptrStreamModeCustom)) {
         // Failed to get custom node
-        cout << "Stream mode " + streamMode + " not available.  Aborting..." << endl;
+        cout << "Stream mode " + streamMode + " not available.  Aborting..."
+             << endl;
         return -1;
     }
     // Retrieve the integer value from the entry node
@@ -94,13 +89,15 @@ int CameraManager::setStreamMode(CameraPtr pCam, StreamMode mode)
     ptrStreamMode->SetIntValue(streamModeCustom);
 
     // Print out the current stream mode
-    cout << endl << "Stream Mode set to " + ptrStreamMode->GetCurrentEntry()->GetSymbolic() << "..." << endl;
+    cout << endl
+         << "Stream Mode set to "
+                + ptrStreamMode->GetCurrentEntry()->GetSymbolic()
+         << "..." << endl;
 
     return 0;
 }
 
-int main(int argc, char *argv[]) {
-
+int main(int argc, char* argv[]) {
     CameraManager manager;
 
     const unsigned int numCameras = manager.camList.GetSize();

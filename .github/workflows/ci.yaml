@@ -1,0 +1,187 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["**"]
+
+permissions:
+  checks: write
+  contents: write
+  pull-requests: write
+
+jobs:
+  lint:
+    name: Lint / Format
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v7
+
+      - name: Install xmllint
+        run: sudo apt-get install -y libxml2-utils
+      
+      - name: Run XML Linters
+        run: xmllint --noout $(find src -name "*.sdf" -o -name "*.urdf" -o -name "*.xml")
+
+      - name: Set up Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.13
+
+      - name: Install Python dependencies
+        run: pip install black ruff
+
+      - name: Install clang-format
+        run: sudo apt-get install -y clang-format
+
+      - name: Python Format & Lint
+        uses: wearerequired/lint-action@v3
+        with:
+          continue_on_error: false
+          ruff: true
+          ruff_args: --select E,F,W,B,SIM,ARG,PIE
+          black: true
+
+      - name: C/C++ Format
+        uses: cpp-linter/cpp-linter-action@v2
+        id: linter
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          style: 'file'  # Use .clang-format config file
+          tidy-checks: '-*'
+          format-review: true
+          thread-comments: ${{ github.event_name == 'pull_request' && 'update' }}
+
+      - name: Fail Fast
+        if: steps.linter.outputs.checks-failed > 0
+        run: exit 1
+
+  commit_names:
+    name: Conventional Commits
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: webiny/action-conventional-commits@v1.4.2
+        with:
+          allowed-commit-types: "feat,fix,chore"
+
+  get_changes:
+      name: Evaluate Changed Files
+      runs-on: ubuntu-24.04
+      outputs:
+        code: ${{ steps.filter.outputs.code }}
+      steps:
+        - name: Checkout guppy 
+          uses: actions/checkout@v7
+
+        - name: Filter for code changes
+          uses: dorny/paths-filter@v3
+          id: filter
+          with:
+            filters: |
+              code:
+                - '**/*.cpp'
+                - '**/*.hpp'
+                - '**/*.py'
+                - '**/CMakeLists.txt'
+                - '**/package.xml'
+                - 'flake.nix'
+                - 'flake.lock'
+                - '.github/workflows/**'
+
+
+  build_and_test_ros2:
+    name: Build and Test ROS / Lint
+    needs: [lint, commit_names, get_changes]
+    if: needs.get_changes.outputs.code == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout guppy
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+          submodules: recursive
+          token: ${{ secrets.SUBMODULE_PAT }}
+
+      - name: Install Determinate Nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Cache Nix Store
+        uses: cachix/cachix-action@v15
+        with:
+          name: palouse-robosub
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+
+      - name: Check Nix Flake
+        uses: DeterminateSystems/flake-checker-action@main
+
+      - name: Restore Vendor
+        id: cache-vendor-restore
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            build/behaviortree_cpp/
+            build/behaviortree_ros2/
+            build/libwaterlinked/
+            build/nlohmann_json/
+            build/vectornav/
+            build/vectornav_msgs/
+            build/waterlinked_dvl_driver/
+            install/behaviortree_cpp/
+            install/behaviortree_ros2/
+            install/libwaterlinked/
+            install/nlohmann_json/
+            install/vectornav/
+            install/vectornav_msgs/
+            install/waterlinked_dvl_driver/
+          key: ${{ runner.os }}-vendor
+      
+      - name: Debug Cache Restore
+        run: find build
+
+      - name: Build and run tests
+        run: nix develop --accept-flake-config --command bash -c "./.github/workflows/diff_and_build.sh"
+
+      - name: Save Vendor
+        id: cache-vendor-save
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            build/behaviortree_cpp/
+            build/behaviortree_ros2/
+            build/libwaterlinked/
+            build/nlohmann_json/
+            build/vectornav/
+            build/vectornav_msgs/
+            build/waterlinked_dvl_driver/
+            install/behaviortree_cpp/
+            install/behaviortree_ros2/
+            install/libwaterlinked/
+            install/nlohmann_json/
+            install/vectornav/
+            install/vectornav_msgs/
+            install/waterlinked_dvl_driver/
+            
+          key: ${{ runner.os }}-vendor-${{ hashFiles('flake.lock', 'flake.nix', 'vendor/**') }}
+
+      - name: C/C++ Lint
+        uses: cpp-linter/cpp-linter-action@v2
+        id: linter
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          style: ''
+          tidy-checks: '-*'
+          no-lgtm: false
+          tidy-review: false
+          database: 'build'
+          thread-comments: ${{ github.event_name == 'pull_request' && 'update' }}
+      
+      - name: Fail Fast
+        if: steps.linter.outputs.checks-failed > 0
+        run: exit 1

@@ -1,16 +1,15 @@
 import rclpy
+from PySide6.QtCore import Property, Signal, Slot
+from rcl_interfaces.msg import ParameterEvent, SetParametersResult
+from rcl_interfaces.srv import GetParameters, ListParameters, SetParameters
 from rclpy.node import Node
 from rclpy.parameter import Parameter
-from rclpy.parameter_event_handler import ParameterEventHandler
 from rclpy.parameter_client import AsyncParameterClient
+from rclpy.parameter_event_handler import ParameterEventHandler
 from rclpy.task import Future
-
-from rcl_interfaces.msg import ParameterEvent, SetParametersResult
-from rcl_interfaces.srv import ListParameters, GetParameters, SetParameters
 
 from guppy_teleop.frontend.widgets.widget import Widget
 
-from PySide6.QtCore import Property, Signal, Slot
 
 class ParameterWidget(Node, Widget):
     parametersChanged = Signal()
@@ -29,14 +28,20 @@ class ParameterWidget(Node, Widget):
         self._load_parameters()
 
         self.handler = ParameterEventHandler(self)
-        self.event_callback_handle = self.handler.add_parameter_event_callback(callback=self._on_param_change)
+        self.event_callback_handle = self.handler.add_parameter_event_callback(
+            callback=self._on_param_change
+        )
 
     def _load_parameters(self):
-        list_client = self.create_client(ListParameters, "control_chassis/list_parameters")
+        list_client = self.create_client(
+            ListParameters, "control_chassis/list_parameters"
+        )
         get_client = self.create_client(GetParameters, "control_chassis/get_parameters")
 
         if not list_client.wait_for_service(timeout_sec=2.0):
-            self.get_logger().error("parameter widget couldn't list control parameters!")
+            self.get_logger().error(
+                "parameter widget couldn't list control parameters!"
+            )
             return
 
         if not get_client.wait_for_service(timeout_sec=2.0):
@@ -55,14 +60,16 @@ class ParameterWidget(Node, Widget):
         rclpy.spin_until_future_complete(self, future)
 
         values = future.result().values
-        
-        for name, value in zip(names, values):
+
+        for name, value in zip(names, values, strict=False):
             self._params[name] = rclpy.parameter.parameter_value_to_python(value)
-    
+
     def _on_param_change(self, event: ParameterEvent):
         for param in event.changed_parameters:
-            self._params[param.name] = rclpy.parameter.parameter_value_to_python(param.value)
-        
+            self._params[param.name] = rclpy.parameter.parameter_value_to_python(
+                param.value
+            )
+
         self.parametersChanged.emit()
 
     @Property("QVariantMap", notify=parametersChanged)
@@ -77,17 +84,17 @@ class ParameterWidget(Node, Widget):
             for key, value in params.items():
                 if not value.__eq__(self._params[key]):
                     if isinstance(value, list):
-                        value = list(map(float, value))
-                    requests.append(Parameter(name=key, value=value))
+                        value2 = list(map(float, value))
+                    requests.append(Parameter(name=key, value=value2))
 
             if len(requests) == 0:
                 return True
-            
+
             print(requests)
-            
+
             if not self.client.wait_for_services(timeout_sec=2.0):
                 raise RuntimeError("parameter service not available")
-            
+
             future: Future[SetParametersResult] = self.client.set_parameters(requests)
             rclpy.spin_until_future_complete(self, future)
 
@@ -100,7 +107,7 @@ class ParameterWidget(Node, Widget):
                     raise (Exception(result.reason))
 
         except Exception as err:
-            self.get_logger().error(f"failed to update parameters: {str(err)}!")
+            self.get_logger().error(f"failed to update parameters: {err!s}!")
             return False
 
         return True
