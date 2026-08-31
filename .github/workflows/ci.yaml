@@ -9,6 +9,8 @@ on:
 permissions:
   checks: write
   contents: write
+  metadata: read 
+  pull-requests: write
 
 jobs:
   lint:
@@ -43,15 +45,28 @@ jobs:
           ruff: true
           ruff_args: --select E,F,W,B,SIM,ARG,PIE
           black: true
-      
+
+      - name: Restore Build
+        id: cache-buld-restore
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            build/
+          key: ${{ runner.os }}-build
+
       - name: C/C++ Format
         uses: cpp-linter/cpp-linter-action@v2
         id: linter
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          style: 'file' # Use .clang-format config file. 
-          tidy-checks: '-*' # disable clang-tidy checks. 
+          style: ''  # Use .clang-format config file
+          tidy-checks: ''
+          no-lgtm: false
+          tidy-review: true
+          format-review: true
+          database: 'build'
+          thread-comments: ${{ github.event_name == 'pull_request' && 'update' }}
 
       - name: Fail Fast
         if: steps.linter.outputs.clang-format-checks-failed > 0
@@ -136,7 +151,7 @@ jobs:
             install/vectornav/
             install/vectornav_msgs/
             install/waterlinked_dvl_driver/
-          key: ${{ runner.os }}-vendor
+          key: ${{ runner.os }}-vendor2
 
       - name: Build and run tests
         run: nix develop --accept-flake-config --command bash -c "./.github/workflows/diff_and_build.sh"
@@ -163,20 +178,11 @@ jobs:
             
           key: ${{ steps.cache-vendor-restore.outputs.cache-primary-key }}
 
-      - name: Install clang-tidy
-        run: sudo apt-get install -y clang-tidy
-
-      - name:  C/C++ Lint
-        uses: cpp-linter/cpp-linter-action@v2
-        id: linter
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Save Build
+        id: cache-build-save
+        uses: actions/cache/save@v6
         with:
-          style: ''  # Use .clang-format config file
-          tidy-checks: ''
-          no-lgtm: false
-          databse: 'build'
-          thread-comments: ${{ github.event_name == 'pull_request' && 'update' }}
-      - name: Fail Fast
-        if: steps.linter.outputs.checks-failed > 0
-        run: exit 1
+          path: |
+            build/
+            
+          key: ${{ steps.cache-build-restore.outputs.cache-primary-key }}
