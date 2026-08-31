@@ -33,10 +33,10 @@ jobs:
       - name: Install Python dependencies
         run: pip install black ruff
 
-      - name: Install ClangFormat and xmllint
+      - name: Install clang-format
         run: sudo apt-get install -y clang-format
 
-      - name: Run Code Linters
+      - name: Python Lint
         uses: wearerequired/lint-action@v3
         with:
           continue_on_error: false
@@ -44,6 +44,19 @@ jobs:
           ruff_args: --select E,F,W,B,SIM,ARG,PIE
           black: true
           clang_format: true
+      
+      - name: C/C++ Format
+        uses: cpp-linter/cpp-linter-action@v2
+        id: linter
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          style: 'file' # Use .clang-format config file. 
+          tidy-checks: '-*' # disable clang-tidy checks. 
+
+      - name: Fail fast?!
+        if: steps.linter.outputs.clang-format-checks-failed > 0
+        run: exit 1
 
   commit_names:
     name: Conventional Commits
@@ -81,7 +94,7 @@ jobs:
 
 
   build_and_test_ros2:
-    name: Build and Test ROS 2 Jazzy
+    name: Build, Test, and Lint#2
     needs: [lint, commit_names, get_changes]
     if: needs.get_changes.outputs.code == 'true'
     runs-on: ubuntu-24.04
@@ -106,3 +119,19 @@ jobs:
 
       - name: Build and run tests
         run: nix develop --accept-flake-config --command bash -c "./.github/workflows/diff_and_build.sh"
+
+      - name: Install clang-tidy
+        run: sudo apt-get install -y clang-tidy
+
+      - name:  C/C++ Lint
+        uses: cpp-linter/cpp-linter-action@v2
+        id: linter
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          style: ''  # Use .clang-format config file
+          tidy-checks: ''
+          thread-comments: ${{ github.event_name == 'pull_request' && 'update' }}
+      - name: Fail fast?!
+        if: steps.linter.outputs.checks-failed > 0
+        run: exit 1
