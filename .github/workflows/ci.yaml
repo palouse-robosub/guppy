@@ -142,7 +142,8 @@ jobs:
           key: ${{ runner.os }}-vendor-${{ hashFiles('flake.lock', 'flake.nix', 'vendor/**') }}
       
       - name: Debug Cache Restore
-        run: find build | grep .
+        continue-on-error: true
+        run: find build
 
       - name: Build and run tests
         run: nix develop --accept-flake-config --command bash -c "./.github/workflows/diff_and_build.sh"
