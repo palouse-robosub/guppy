@@ -9,29 +9,5 @@
     "dockerfile": "../Dockerfile"
   },
 
-  // Features to add to the dev container. More info: https://containers.dev/features.
-  // "features": {},
-
-  // Use 'forwardPorts' to make a list of ports inside the container available locally.
-  "forwardPorts": [
-    6080,
-    5901
-  ],
-  "portsAttributes": {
-    "6080": {
-      "label": "noVNC"
-    },
-    "5901": {
-      "label": "VNC"
-    }
-  },
-
-  // Uncomment the next line to run commands after the container is created.
-  "postCreateCommand": "vncserver :1 -SecurityTypes None && /opt/novnc/utils/novnc_proxy --vnc localhost:5901 --listen localhost:6080"
-
-  // Configure tool-specific properties.
-  // "customizations": {},
-
-  // Uncomment to connect as an existing user other than the container default. More info: https://aka.ms/dev-containers-non-root.
-  // "remoteUser": "devcontainer"
+  "postCreateCommand": "cd /workspaces/guppy/vendor/spinnaker-sdk && ./docker_install.sh && cd ../.. && direnv allow"
 }

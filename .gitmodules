@@ -17,3 +17,6 @@
 [submodule "vendor/behaviortree_cpp.ROS2"]
 	path = vendor/behaviortree_cpp.ROS2
 	url = https://github.com/BehaviorTree/BehaviorTree.ROS2
+[submodule "vendor/spinnaker-sdk"]
+	path = vendor/spinnaker-sdk
+	url = https://github.com/palouse-robosub/spinnaker-sdk
