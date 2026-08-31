@@ -9,5 +9,5 @@
     "dockerfile": "../Dockerfile"
   },
 
-  "postCreateCommand": "nix develop"
+  "postCreateCommand": "cd /workspaces/guppy/vendor/spinnaker-sdk && ./docker_install.sh && cd ../.. && direnv allow"
 }

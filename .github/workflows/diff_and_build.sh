@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+cd vendor/spinnaker-sdk ; sudo ./actions_install.sh ; cd ../..
+
 PKGS=$(colcon list --names-only)
 
 CHANGED_FILES=$(git diff --name-only HEAD~1...HEAD)
