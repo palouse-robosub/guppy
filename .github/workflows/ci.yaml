@@ -150,7 +150,7 @@ jobs:
             install/vectornav/
             install/vectornav_msgs/
             install/waterlinked_dvl_driver/
-          key: ${{ runner.os }}-vendor2
+          key: ${{ runner.os }}-vendor
 
       - name: Build and run tests
         run: nix develop --accept-flake-config --command bash -c "./.github/workflows/diff_and_build.sh"
@@ -175,7 +175,7 @@ jobs:
             install/vectornav_msgs/
             install/waterlinked_dvl_driver/
             
-          key: ${{ steps.cache-vendor-restore.outputs.cache-primary-key }}
+          key: ${{ runner.os }}-vendor
 
       - name: Save Build
         id: cache-build-save
@@ -184,4 +184,4 @@ jobs:
           path: |
             build/
             
-          key: ${{ steps.cache-build-restore.outputs.cache-primary-key }}
+          key: ${{ runner.os }}-build
