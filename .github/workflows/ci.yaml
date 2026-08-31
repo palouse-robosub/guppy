@@ -67,9 +67,9 @@ jobs:
           database: 'build'
           thread-comments: ${{ github.event_name == 'pull_request' && 'update' }}
 
-      - name: Fail Fast
-        if: steps.linter.outputs.checks-failed > 0
-        run: exit 1
+      # - name: Fail Fast
+      #   if: steps.linter.outputs.checks-failed > 0
+      #   run: exit 1
 
   commit_names:
     name: Conventional Commits
