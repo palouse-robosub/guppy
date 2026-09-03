@@ -30,5 +30,6 @@
         "valarray": "cpp",
         "vector": "cpp"
     },
-    "cmake.ignoreCMakeListsMissing": true
+    "cmake.ignoreCMakeListsMissing": true,
+    "files.eol": "\n"
 }
