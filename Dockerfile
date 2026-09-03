@@ -12,6 +12,6 @@ RUN mkdir -p /etc/nix && \
     echo "extra-trusted-public-keys = ros.cachix.org-1:dSyZxI8geDCJrwgvCOHDoAfOm5sV1wCPjBkKL+38Rvo= palouse-robosub.cachix.org-1:r2KNmfNGOZB+IhqEqDIMDaEWMYZv8ct1tdSg7n7fNKw=" >> /etc/nix/nix.conf && \
     echo "accept-flake-config = true" >> /etc/nix/nix.conf
 
-RUN echo 'eval "$(direnv hook bash)"' >> ~/.bashrcText File.txt
+RUN echo 'eval "$(direnv hook bash)"' >> ~/.bashrc
 
 RUN git config --global --add safe.directory /workspaces/guppy
