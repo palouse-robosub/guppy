@@ -8,7 +8,8 @@ src/guppy_control @cole-wilson
 src/guppy_description @cole-wilson
 
 src/guppy_can @andy-sorge
-src/guppy_teleop @andy-sorge
+src/guppy_teleop @andy-sorge @ryden-handsaker
 src/guppy_vision @andy-sorge
 
 src/guppy_state @ryden-handsaker
+src/guppy_nav @ryden-handsaker
