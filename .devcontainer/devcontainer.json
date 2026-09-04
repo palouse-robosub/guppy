@@ -9,5 +9,7 @@
     "dockerfile": "../Dockerfile"
   },
 
+  "runArgs": ["--security-opt", "label=disable"], // for SELinux
+
   "postCreateCommand": "cd /workspaces/guppy/vendor/spinnaker-sdk && ./docker_install.sh && cd ../.. && direnv allow"
 }
