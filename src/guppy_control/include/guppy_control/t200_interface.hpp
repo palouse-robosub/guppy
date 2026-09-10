@@ -14,13 +14,15 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#define N_MOTORS 8
+
 namespace t200_interface {
 
 /* A hardware interface for a controller to interact with the T200 thrusters
  * over CAN */
 class T200Interface {
-    /* an ordered vector of the CAN id for each motor */
-    std::vector<unsigned int> can_ids;
+    /* an ordered array of the CAN id for each motor */
+    std::array<unsigned int, N_MOTORS> can_ids;
 
     /* the CAN socket descriptor */
     int sock_;
@@ -50,10 +52,10 @@ class T200Interface {
         @brief construct a new T200 thruster interface (one for multiple
        thrusters)
         @param can_interface the can interface to connect to, like can0 or vcan0
-        @param can_ids an ordered vector of thruster CAN ids
+        @param can_ids an ordered array of thruster CAN ids
     */
     T200Interface(
-        std::string can_interface, std::vector<unsigned int> can_ids
+        std::string can_interface, std::array<unsigned int, N_MOTORS> can_ids
     ) : can_ids(can_ids), can_interface_(can_interface) {
         setup_can();
     };

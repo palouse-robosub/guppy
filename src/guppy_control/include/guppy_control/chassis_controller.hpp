@@ -2,11 +2,8 @@
 #define GUPPY_CHASSIS_CONTROLLER_H
 
 #define GRAVITY  9.81
-#define N_MOTORS 8
 
 #include <atomic>
-#include <chrono>
-#include <memory>
 #include <string>
 #include <thread>
 #include <vector>
@@ -30,7 +27,7 @@ using namespace std::chrono;
 /* A controller that manages PID, feedforward and thrust allocation for the
  * chassis */
 class ChassisController {
-  public:
+public:
     int first_run = 0;
 
     /* strange chatgpt magic to bypass the deprecated constructor... */
@@ -45,7 +42,7 @@ class ChassisController {
 
     /* stores the state of the orientation locking code */
     typedef enum orientation_lock_state_struct_ {
-        ALL_LOCKED = 0b111, /* all rotation axes are locked: station keeping */
+        ALL_LOCKED      = 0b111, /* all rotation axes are locked: station keeping */
         ROLL_PITCH_LOCK = 0b110, /* Roll and Pitch (X and Y) axes are locked */
         ROLL_YAW_LOCK   = 0b101, /* Roll and Yaw (X and Z) axes are locked */
         ROLL_LOCK       = 0b100, /* Roll (X) axis is locked */
@@ -57,7 +54,7 @@ class ChassisController {
 
     /* A grouping of parameters to setup and configure the chassis controller.
      */
-    typedef struct chassis_controller_params_ {
+    struct Parameters {
         /* A 6XN_MOTORS matrix of coefficients corresponding to each motor */
         Eigen::Matrix<double, 6, N_MOTORS> motor_coefficients =
             Eigen::Matrix<double, 6, N_MOTORS>::Zero();
@@ -133,7 +130,7 @@ class ChassisController {
         // qp solver
         /* QP convergence epsilon */
         double qp_epsilon = 1e-2;
-    } ChassisControllerParams;
+    };
 
     /*
         @brief Create a new ChassisController with the given parameters and
@@ -144,7 +141,7 @@ class ChassisController {
         @param dt_us the loop period in microseconds (default 500us)
     */
     ChassisController(
-        ChassisControllerParams parameters, T200Interface* hw_interface,
+        Parameters parameters, std::shared_ptr<T200Interface> hw_interface,
         int dt_us = 500
     );
     ~ChassisController();
@@ -154,14 +151,14 @@ class ChassisController {
        a Odometry message
         @param msg a SharedPointer to an Odometry ROS2 message object
     */
-    void update_current_state(nav_msgs::msg::Odometry::SharedPtr msg);
+    void update_current_state(const nav_msgs::msg::Odometry& msg);
 
     /*
         @brief update the desired robot velocity target state from a Twist
        message
         @param msg a SharedPointer to an Twist ROS2 message object
     */
-    void update_desired_state(geometry_msgs::msg::Twist::SharedPtr msg);
+    void update_desired_state(const geometry_msgs::msg::Twist& msg);
 
     /*
         @brief resets the holding pose
@@ -179,12 +176,12 @@ class ChassisController {
         @brief update the configuration parameters
         @param parameters the new configuration options object
     */
-    void update_parameters(ChassisControllerParams parameters);
+    void update_parameters(Parameters& parameters);
 
     /*
         @brief get a copy of the configuration paramters
     */
-    ChassisControllerParams get_param_struct();
+    Parameters get_param_struct();
 
     /*
         @brief initializes hardware interface and starts the control thread
@@ -204,7 +201,7 @@ class ChassisController {
 
   private:
     /* the hardware interface */
-    T200Interface* interface_;
+    std::shared_ptr<T200Interface> interface_;
 
     /* the current velocity state of the submarine (updated by Odometry msgs) */
     Eigen::Vector<double, 6> current_velocity_state_;
@@ -235,7 +232,7 @@ class ChassisController {
     Eigen::Vector<double, N_MOTORS> motor_forces_;
 
     /* the storage location for the setup param object */
-    ChassisControllerParams params_;
+    Parameters params_;
 
     /* the PID controllers for velocity control */
     std::vector<control_toolbox::Pid> velocity_pid;

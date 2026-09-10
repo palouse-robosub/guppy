@@ -229,7 +229,7 @@ void ChassisController::enable_pose_pid(bool enabled) {
 }
 
 ChassisController::ChassisController(
-    ChassisControllerParams parameters, T200Interface* hw_interface, int dt_us
+    Parameters parameters, std::shared_ptr<T200Interface> hw_interface, int dt_us
 ) :
   interface_(hw_interface), current_orientation_state_(1, 0, 0, 0),
   desired_orientation_state_(1, 0, 0, 0), params_(parameters),
@@ -284,13 +284,12 @@ Eigen::Vector<double, N_MOTORS>
 }
 
 void ChassisController::update_current_state(
-    nav_msgs::msg::Odometry::SharedPtr msg
+    const nav_msgs::msg::Odometry& msg
 ) {
     // get message parts from the Shared Pointer
-    auto ros_odom  = msg;
-    auto ros_quat  = ros_odom->pose.pose.orientation;
-    auto ros_pos   = ros_odom->pose.pose.position;
-    auto ros_twist = ros_odom->twist.twist;
+    auto& ros_quat  = msg.pose.pose.orientation;
+    auto& ros_pos   = msg.pose.pose.position;
+    auto& ros_twist = msg.twist.twist;
 
     // update current velocity
     Eigen::Vector<double, 6> new_current_vel;
@@ -310,27 +309,27 @@ void ChassisController::update_current_state(
 }
 
 void ChassisController::update_desired_state(
-    geometry_msgs::msg::Twist::SharedPtr msg
+    const geometry_msgs::msg::Twist& msg
 ) {
-    auto ros_twist = msg.get();
+    auto& ros_twist = msg;
 
     // update desired state from ros2 message
     Eigen::Vector<double, 6> new_desired_state;
-    new_desired_state << ros_twist->linear.x, ros_twist->linear.y,
-        ros_twist->linear.z, ros_twist->angular.x, ros_twist->angular.y,
-        ros_twist->angular.z;
+    new_desired_state << ros_twist.linear.x, ros_twist.linear.y,
+        ros_twist.linear.z, ros_twist.angular.x, ros_twist.angular.y,
+        ros_twist.angular.z;
 
-    if (std::isnan(ros_twist->linear.x) || std::isnan(ros_twist->linear.y)
-        || std::isnan(ros_twist->linear.z)) {
+    if (std::isnan(ros_twist.linear.x) || std::isnan(ros_twist.linear.y)
+        || std::isnan(ros_twist.linear.z)) {
         return;
     }
 
     this->desired_velocity_state_ = new_desired_state;
 }
 
-void ChassisController::update_parameters(ChassisControllerParams parameters) {
+void ChassisController::update_parameters(Parameters& parameters) {
     // set parameter object
-    this->params_ = parameters;
+    this->params_ = std::move(parameters);
 
     // recalculate the motor coefficients into a QP problem
     Eigen::MatrixXd qp_A = params_.motor_coefficients;
@@ -429,8 +428,7 @@ void ChassisController::update_parameters(ChassisControllerParams parameters) {
     );
 }
 
-ChassisController::ChassisControllerParams
-    ChassisController::get_param_struct() {
+ChassisController::Parameters ChassisController::get_param_struct() {
     return this->params_;
 }
 
