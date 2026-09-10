@@ -10,21 +10,23 @@
       let
         pkgs = import nixpkgs {
           inherit system;
+          config.allowUnfree = true; # for spinnaker
           overlays = [ nix-ros-overlay.overlays.default ];
         };
-
-	unstable = import nixpkgs-unstable { inherit system; };
+        unstable = import nixpkgs-unstable { inherit system; };
+        spinnaker = pkgs.callPackage ./vendor/spinnaker-sdk { };
       in {
         devShells.default = pkgs.mkShell {
           name = "guppy_ros";
           packages = [
             # non ros
-            
+            spinnaker
+
             # build
             pkgs.colcon
             pkgs.cmake
             pkgs.clang-tools
-            
+
             # deps
             pkgs.proxsuite
 
@@ -37,7 +39,7 @@
             # extra
             pkgs.fastfetch
             pkgs.can-utils
-            
+
             (with pkgs.rosPackages.jazzy; buildEnv {
               # ros packages
               paths = [
@@ -46,31 +48,31 @@
                 ros-base
                 rclcpp
                 rclpy
-                
+
                 # ros msgs
                 std-msgs
                 geometry-msgs
                 sensor-msgs
                 nav-msgs
-      
+
                 # rqt
                 rqt
                 rqt-common-plugins
-                
+
                 # build
                 ament-cmake
                 ament-cmake-core # vectornav_msgs
                 ament-cmake-python
                 ament-lint-auto
-                
+
                 # launch
                 launch
                 launch-ros
                 launch-xml
-                
+
                 # rviz
                 rviz2
-                
+
                 # deps
                 ros2-control
                 control-toolbox
@@ -83,9 +85,10 @@
               ];
             })
           ];
-          # shellHook = ''
-          #   fastfetch -l ./.github/guppy.txt
-          # '';
+          shellHook = ''
+            #fastfetch -l ./.github/guppy.txt
+            export SPINNAKER_ROOT="${spinnaker}"
+          '';
         };
       });
   nixConfig = {

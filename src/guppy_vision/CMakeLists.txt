@@ -23,8 +23,8 @@ find_package(tf2_ros REQUIRED)
 find_package(image_transport REQUIRED)
 
 # Spinnaker paths
-set(SPINNAKER_INCLUDE_DIR /opt/spinnaker/include)
-set(SPINNAKER_LIBRARY /opt/spinnaker/lib/libSpinnaker.so)
+set(SPINNAKER_INCLUDE_DIR $ENV{SPINNAKER_ROOT}/include)
+set(SPINNAKER_LIBRARY $ENV{SPINNAKER_ROOT}/lib/libSpinnaker.so)
 
 # Create imported library target
 add_library(Spinnaker::Spinnaker SHARED IMPORTED)
@@ -57,7 +57,7 @@ install(TARGETS
   pnp
   slam
   camera_pub
-  
+
   DESTINATION lib/${PROJECT_NAME})
 
 # Install Python modules
