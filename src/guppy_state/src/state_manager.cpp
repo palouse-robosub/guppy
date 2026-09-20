@@ -248,7 +248,7 @@ public:
 
 int main(int argc, char* argv[]) {
     rclcpp::init(argc, argv);
-    auto publisher_node = std::make_shared<StateManager>();
+    const auto publisher_node = std::make_shared<StateManager>();
     rclcpp::spin(publisher_node);
     rclcpp::shutdown();
     return 0;

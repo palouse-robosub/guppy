@@ -3,21 +3,20 @@
 namespace t200_interface {
 
 bool T200Interface::setup_can() {
-    sock_ = socket(PF_CAN, SOCK_RAW, CAN_RAW);
-    if (sock_ < 0)
+    socket_ = socket(PF_CAN, SOCK_RAW, CAN_RAW);
+    if (socket_ < 0)
         return false;
 
-    struct ifreq ifr;
-    std::strcpy(ifr.ifr_name, can_interface_.c_str());
-    if (ioctl(sock_, SIOCGIFINDEX, &ifr) < 0)
+    struct ifreq request;
+    std::strcpy(request.ifr_name, can_interface_.c_str());
+    if (ioctl(socket_, SIOCGIFINDEX, &request) < 0)
         return false;
 
     struct sockaddr_can addr{};
     addr.can_family  = AF_CAN;
-    addr.can_ifindex = ifr.ifr_ifindex;
+    addr.can_ifindex = request.ifr_ifindex;
 
-    if (bind(sock_, reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr))
-        < 0)
+    if (bind(socket_, reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)) < 0)
         return false;
 
     return true;
@@ -30,7 +29,7 @@ bool T200Interface::send_to_can(unsigned int can_id, float value) {
 
     std::memcpy(frame.data, &value, sizeof(float));
 
-    if (::write(sock_, &frame, sizeof(struct can_frame)) < 0)
+    if (::write(socket_, &frame, sizeof(struct can_frame)) < 0)
         return false;
     return true;
 }
