@@ -27,6 +27,7 @@
             
             # deps
             pkgs.proxsuite
+            pkgs.nlohmann_json
 
             (unstable.python3.withPackages (ps: with ps; [
               pygame

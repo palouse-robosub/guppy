@@ -21,7 +21,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Install xmllint
-        run: sudo apt-get install -y libxml2-utils
+        run: sudo apt-get update && sudo apt-get install -y libxml2-utils
       
       - name: Run XML Linters
         run: xmllint --noout $(find src -name "*.sdf" -o -name "*.urdf" -o -name "*.xml")
