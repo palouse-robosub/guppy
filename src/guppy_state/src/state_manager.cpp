@@ -1,15 +1,14 @@
-#include <memory>
-#include <optional>
-
+#include "geometry_msgs/msg/twist.hpp"
 #include "guppy_msgs/msg/can_frame.hpp"
 #include "guppy_msgs/msg/state.hpp"
 #include "guppy_msgs/srv/change_state.hpp"
-#include "geometry_msgs/msg/twist.hpp"
-#include "std_srvs/srv/empty.hpp"
-#include "rclcpp/node.hpp"
-#include "rclcpp/executors.hpp"
-
 #include "guppy_util/quality.hpp"
+#include "rclcpp/executors.hpp"
+#include "rclcpp/node.hpp"
+#include "std_srvs/srv/empty.hpp"
+
+#include <memory>
+#include <optional>
 
 using namespace std::chrono_literals;
 
@@ -17,84 +16,73 @@ class StateManager : public rclcpp::Node {
 public:
     static inline const geometry_msgs::msg::Twist zero_twist{};
 private:
-    uint8_t                                              current_state_;
-    rclcpp::Publisher<guppy_msgs::msg::State>::SharedPtr state_pub_;
-    rclcpp::Subscription<guppy_msgs::msg::CanFrame>::SharedPtr
-                                                         emergency_stop_sub_;
-    rclcpp::Client<std_srvs::srv::Empty>::SharedPtr      reset_pose_;
+    uint8_t                                                          current_state_;
+    std::shared_ptr<rclcpp::Publisher<guppy_msgs::msg::State>>       state_pub_;
+    std::shared_ptr<rclcpp::Subscription<guppy_msgs::msg::CanFrame>> emergency_stop_sub_;
+    std::shared_ptr<rclcpp::Client<std_srvs::srv::Empty>>            reset_pose_;
 
-    rclcpp::Service<guppy_msgs::srv::ChangeState>::SharedPtr state_service_;
-    rclcpp::TimerBase::SharedPtr                             timer_;
+    std::shared_ptr<rclcpp::Service<guppy_msgs::srv::ChangeState>> state_service_;
+    std::shared_ptr<rclcpp::TimerBase>                             timer_;
 
-    rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr nav_sub_;
-    rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr task_sub_;
-    rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr teleop_sub_;
+    std::shared_ptr<rclcpp::Subscription<geometry_msgs::msg::Twist>> nav_sub_;
+    std::shared_ptr<rclcpp::Subscription<geometry_msgs::msg::Twist>> task_sub_;
+    std::shared_ptr<rclcpp::Subscription<geometry_msgs::msg::Twist>> teleop_sub_;
 
     std::optional<geometry_msgs::msg::Twist> nav_twist_;
     std::optional<geometry_msgs::msg::Twist> task_twist_;
     std::optional<geometry_msgs::msg::Twist> teleop_twist_;
 
-    rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
+    std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::Twist>> cmd_vel_pub_;
 
     bool was_emergency_stopped_ = false;
 public:
-    StateManager() :
-        Node("state_manager"), current_state_(guppy_msgs::msg::State::STARTUP) {
-
-        this->emergency_stop_sub_ =
-            this->create_subscription<guppy_msgs::msg::CanFrame>(
-                "/can/id_0x1b", quality::keep_last_profile,
-                [this](const guppy_msgs::msg::CanFrame::ConstSharedPtr& msg){
-                    this->emergency_stop_callback(*msg);
-                }
-            );
-        this->reset_pose_ = this->create_client<std_srvs::srv::Empty>("reset_holding_pose", quality::reliable_profile);
-
-        this->state_pub_ = this->create_publisher<guppy_msgs::msg::State>(
-            "state", quality::keep_last_profile
+    StateManager() : Node("state_manager"), current_state_(guppy_msgs::msg::State::STARTUP) {
+        this->emergency_stop_sub_ = this->create_subscription<guppy_msgs::msg::CanFrame>(
+            "/can/id_0x1b", quality::keep_last_profile,
+            [this](const std::shared_ptr<const guppy_msgs::msg::CanFrame>& msg) {
+                this->emergency_stop_callback(*msg);
+            }
         );
+        this->reset_pose_ = this->create_client<std_srvs::srv::Empty>(
+            "reset_holding_pose", quality::reliable_profile
+        );
+
+        this->state_pub_ =
+            this->create_publisher<guppy_msgs::msg::State>("state", quality::keep_last_profile);
 
         this->state_service_ = this->create_service<guppy_msgs::srv::ChangeState>(
             "change_state",
-            [this](const std::shared_ptr<guppy_msgs::srv::ChangeState::Request>& request, const std::shared_ptr<guppy_msgs::srv::ChangeState::Response>& response){
-                this->transition_callback(*request, *response);
+            [this](
+                const std::shared_ptr<guppy_msgs::srv::ChangeState::Request>&  request,
+                const std::shared_ptr<guppy_msgs::srv::ChangeState::Response>& response
+            ) { this->transition_callback(*request, *response); }
+        );
+
+        this->timer_ = this->create_wall_timer(1ms, [this]() { this->on_timer(); });
+
+        this->nav_sub_ = this->create_subscription<geometry_msgs::msg::Twist>(
+            "cmd_vel/nav", quality::volatile_profile,
+            [this](const std::shared_ptr<const geometry_msgs::msg::Twist>& msg) {
+                this->nav_twist_ = *msg;
+            }
+        );
+        this->task_sub_ = this->create_subscription<geometry_msgs::msg::Twist>(
+            "cmd_vel/task", quality::volatile_profile,
+            [this](const std::shared_ptr<const geometry_msgs::msg::Twist>& msg) {
+                this->task_twist_ = *msg;
+            }
+        );
+        this->teleop_sub_ = this->create_subscription<geometry_msgs::msg::Twist>(
+            "cmd_vel/teleop", quality::volatile_profile,
+            [this](const std::shared_ptr<const geometry_msgs::msg::Twist>& msg) {
+                this->teleop_twist_ = *msg;
             }
         );
 
-        this->timer_ = this->create_wall_timer(
-            1ms,
-            [this](){
-                this->on_timer();
-            }
-        );
-
-        this->nav_sub_ =
-            this->create_subscription<geometry_msgs::msg::Twist>(
-                "cmd_vel/nav", quality::volatile_profile,
-                [this](const geometry_msgs::msg::Twist::ConstSharedPtr& msg) {
-                    this->nav_twist_ = *msg;
-                }
-            );
-        this->task_sub_ =
-            this->create_subscription<geometry_msgs::msg::Twist>(
-                "cmd_vel/task", quality::volatile_profile,
-                [this](const geometry_msgs::msg::Twist::ConstSharedPtr& msg) {
-                    this->task_twist_ = *msg;
-                }
-            );
-        this->teleop_sub_ =
-            this->create_subscription<geometry_msgs::msg::Twist>(
-                "cmd_vel/teleop", quality::volatile_profile,
-                [this](const geometry_msgs::msg::Twist::ConstSharedPtr& msg) {
-                    this->teleop_twist_ = *msg;
-                }
-            );
-
-        this->cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>(
-            "cmd_vel", quality::volatile_profile
-        );
+        this->cmd_vel_pub_ =
+            this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", quality::volatile_profile);
     }
-  private:
+private:
     void emergency_stop_callback(const guppy_msgs::msg::CanFrame& msg) {
         int is_emergency_stopped = 0;
         memcpy(&is_emergency_stopped, msg.data.data(), sizeof(int));
@@ -143,18 +131,14 @@ public:
 
         if (new_state == this->current_state_) {
             RCLCPP_WARN(
-                this->get_logger(), "Already in state '%s'!",
-                to_string(current_state_).c_str()
+                this->get_logger(), "Already in state '%s'!", to_string(current_state_).c_str()
             );
             response.success = false;
             return;
         }
 
         if (!is_valid_state(new_state)) {
-            RCLCPP_ERROR(
-                this->get_logger(),
-                "Invalid state passed in transition service!"
-            );
+            RCLCPP_ERROR(this->get_logger(), "Invalid state passed in transition service!");
             response.success = false;
             return;
         }
@@ -182,8 +166,7 @@ public:
             );
         else
             RCLCPP_ERROR(
-                get_logger(),
-                "Failed to publish state transition from '%s'->'%s'.",
+                get_logger(), "Failed to publish state transition from '%s'->'%s'.",
                 to_string(stale_state).c_str(), to_string(new_state).c_str()
             );
     }
@@ -216,9 +199,7 @@ public:
     }
 
     void handle_holding() {
-        this->cmd_vel_pub_->publish(
-            StateManager::zero_twist
-        );
+        this->cmd_vel_pub_->publish(StateManager::zero_twist);
     }
 
     void handle_nav() {

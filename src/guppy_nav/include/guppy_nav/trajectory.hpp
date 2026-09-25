@@ -8,12 +8,12 @@ private:
     double k1, c2, c3, k3;                                               // precomputed constants
 public:
     explicit Trajectory(
-        double start_velocity, double end_velocity, double attack, double decay,
-        double total_time, double target_position
+        double start_velocity, double end_velocity, double attack, double decay, double total_time,
+        double target_position
     );
     double get_target_velocity(double time) const;
     double get_target_position(double time) const;
-  private:
+private:
     double inline compute_max_velocity() const;
     double inline compute_position_1(double time) const;
     double inline compute_position_2(double time) const;

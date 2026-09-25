@@ -2,21 +2,20 @@
 
 #include "rclcpp/logging.hpp"
 
+#include <cerrno>
+#include <cstring>
 #include <net/if.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include <cerrno>
-#include <cstring>
 
 // public members
-Socket::Socket(std::string_view interface, rclcpp::Logger logger)
-: logger_(std::move(logger)) {
+Socket::Socket(std::string_view interface, rclcpp::Logger logger) : logger_(std::move(logger)) {
     active_ = initialize_socket(interface);
 }
 
-Socket::Socket(Socket&& other)
-: logger_(other.logger_), descriptor_(other.descriptor_), active_(other.active_) {
+Socket::Socket(Socket&& other) :
+    logger_(other.logger_), descriptor_(other.descriptor_), active_(other.active_) {
     other.active_ = false;
 }
 
@@ -24,8 +23,8 @@ Socket& Socket::operator=(Socket&& other) {
     if (this != &other) {
         if (active_)
             ::close(static_cast<int>(descriptor_));
-        descriptor_ = other.descriptor_;
-        active_ = other.active_;
+        descriptor_   = other.descriptor_;
+        active_       = other.active_;
         other.active_ = false;
     }
     return *this;
@@ -80,15 +79,20 @@ bool Socket::initialize_socket(std::string_view interface) {
     ifreq request{};
     std::strncpy(request.ifr_name, std::string(interface).c_str(), IFNAMSIZ);
     request.ifr_name[IFNAMSIZ - 1] = '\0';
-    if(ioctl(new_descriptor, SIOCGIFINDEX, &request) < 0) {
-        RCLCPP_FATAL(logger_, "Failed to get interface index for '%s': %s", request.ifr_name, std::strerror(errno));
+    if (ioctl(new_descriptor, SIOCGIFINDEX, &request) < 0) {
+        RCLCPP_FATAL(
+            logger_, "Failed to get interface index for '%s': %s", request.ifr_name,
+            std::strerror(errno)
+        );
         ::close(new_descriptor);
         return false;
     }
     sockaddr_can address{};
     address.can_family = AF_CAN, address.can_ifindex = request.ifr_ifindex;
     if (bind(new_descriptor, reinterpret_cast<const sockaddr*>(&address), sizeof(address)) < 0) {
-        RCLCPP_FATAL(logger_, "Failed to bind CAN socket to '%s': %s", request.ifr_name, std::strerror(errno));
+        RCLCPP_FATAL(
+            logger_, "Failed to bind CAN socket to '%s': %s", request.ifr_name, std::strerror(errno)
+        );
         ::close(new_descriptor);
         return false;
     }

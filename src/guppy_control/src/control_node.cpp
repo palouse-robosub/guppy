@@ -1,84 +1,88 @@
-#include <array>
-#include <unordered_map>
-
-#include <std_msgs/msg/float64.hpp>
-#include <rclcpp/executors.hpp>
-#include <rclcpp/node.hpp>
-#include <rclcpp/subscription.hpp>
-#include <rclcpp/parameter_event_handler.hpp>
-
 #include "guppy_control/chassis_controller.hpp"
 #include "guppy_control/t200_interface.hpp"
 #include "guppy_msgs/msg/state.hpp"
-#include "guppy_util/quality.hpp"
 #include "guppy_msgs/srv/set_hold_pose.hpp"
+#include "guppy_util/quality.hpp"
+
+#include <array>
+#include <rclcpp/executors.hpp>
+#include <rclcpp/node.hpp>
+#include <rclcpp/parameter_event_handler.hpp>
+#include <rclcpp/subscription.hpp>
+#include <std_msgs/msg/float64.hpp>
+#include <unordered_map>
 
 using namespace std::chrono_literals;
 
 class ControlNode : public rclcpp::Node {
 private:
-    const std::shared_ptr<rclcpp::ParameterEventHandler>  parameter_sub_;
+    const std::shared_ptr<rclcpp::ParameterEventHandler> parameter_sub_;
 
     const std::shared_ptr<T200Interface> thruster_interface_;
     ChassisController                    controller_;
 
     std::shared_ptr<rclcpp::ParameterEventCallbackHandle> parameter_event_callback_handle_;
 
-    std::array<std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float64>>, T200Interface::motor_count> sim_motor_pubs_;
-    std::shared_ptr<const rclcpp::Subscription<nav_msgs::msg::Odometry>>             odom_sub_;
-    std::shared_ptr<const rclcpp::Subscription<geometry_msgs::msg::Twist>>           cmd_vel_sub_;
-    std::shared_ptr<const rclcpp::Subscription<guppy_msgs::msg::State>>              state_sub_;
-    std::shared_ptr<rclcpp::Service<guppy_msgs::srv::SetHoldPose>>                   reset_service_;
+    std::array<std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float64>>, T200Interface::motor_count>
+                                                                           sim_motor_pubs_;
+    std::shared_ptr<const rclcpp::Subscription<nav_msgs::msg::Odometry>>   odom_sub_;
+    std::shared_ptr<const rclcpp::Subscription<geometry_msgs::msg::Twist>> cmd_vel_sub_;
+    std::shared_ptr<const rclcpp::Subscription<guppy_msgs::msg::State>>    state_sub_;
+    std::shared_ptr<rclcpp::Service<guppy_msgs::srv::SetHoldPose>>         reset_service_;
 
     std::shared_ptr<const rclcpp::TimerBase> timer_;
-
 public:
-    ControlNode() : Node("control_node"), parameter_sub_(std::make_shared<rclcpp::ParameterEventHandler>(this)),
+    ControlNode() :
+        Node("control_node"), parameter_sub_(std::make_shared<rclcpp::ParameterEventHandler>(this)),
         thruster_interface_(
             std::make_shared<T200Interface>(
-                "can0", std::array<unsigned int, T200Interface::motor_count>{ 0x411, 0x412, 0x413, 0x414, 0x415, 0x416, 0x417, 0x418 }, this->get_logger()
+                "can0",
+                std::array<unsigned int, T200Interface::motor_count>{
+                    0x411, 0x412, 0x413, 0x414, 0x415, 0x416, 0x417, 0x418
+                },
+                this->get_logger()
             )
         ),
         controller_(fetch_parameters(), thruster_interface_, 100000) {
         declare_parameters();
 
-        auto parameter_callback = [this](const rcl_interfaces::msg::ParameterEvent& parameter_event) {
-            if (parameter_event.node != this->get_fully_qualified_name())
-                return;    // quit if for another node
-            auto controller_parameters = this->controller_.get_param_struct();    // get copy of current parameters
-            bool update = false;
-            for (const auto& parameter : parameter_event.changed_parameters) {
-                const auto name = rclcpp::Parameter::from_parameter_msg(parameter).get_name();
-                const auto value = rclcpp::Parameter::from_parameter_msg(parameter);
-                auto it = this->parameter_handlers().find(name);
-                if (it == this->parameter_handlers().end()) {
+        auto parameter_callback =
+            [this](const rcl_interfaces::msg::ParameterEvent& parameter_event) {
+                if (parameter_event.node != this->get_fully_qualified_name())
+                    return;    // quit if for another node
+                auto controller_parameters =
+                    this->controller_.get_param_struct();    // get copy of current parameters
+                bool update = false;
+                for (const auto& parameter : parameter_event.changed_parameters) {
+                    const auto name  = rclcpp::Parameter::from_parameter_msg(parameter).get_name();
+                    const auto value = rclcpp::Parameter::from_parameter_msg(parameter);
+                    auto       it    = this->parameter_handlers().find(name);
+                    if (it == this->parameter_handlers().end()) {
+                        RCLCPP_INFO(
+                            this->get_logger(),
+                            "No transformer found for parameter '%s', skipping.", name.c_str()
+                        );
+                        continue;
+                    }
+                    auto [before, after] = it->second(controller_parameters, value);
+                    update               = true;
                     RCLCPP_INFO(
-                        this->get_logger(),
-                        "No transformer found for parameter '%s', skipping.",
-                        name.c_str()
+                        this->get_logger(), "Parameter '%s' changed (%s)->(%s)", name.c_str(),
+                        before.c_str(), after.c_str()
                     );
-                    continue;
                 }
-                auto [before, after] = it->second(controller_parameters, value);
-                update = true;
-                RCLCPP_INFO(
-                    this->get_logger(),
-                    "Parameter '%s' changed (%s)->(%s)",
-                    name.c_str(), before.c_str(), after.c_str()
-                );
-            }
-            if (update)    // update if parameters dirty
-                this->controller_.update_parameters(controller_parameters);
-        };
+                if (update)    // update if parameters dirty
+                    this->controller_.update_parameters(controller_parameters);
+            };
 
-        this->parameter_event_callback_handle_ = this->parameter_sub_->add_parameter_event_callback(parameter_callback);
+        this->parameter_event_callback_handle_ =
+            this->parameter_sub_->add_parameter_event_callback(parameter_callback);
 
         // setup motor publishers for sim
         for (size_t i = 0; i < T200Interface::motor_count; i++) {
-            sim_motor_pubs_[i] =
-                this->create_publisher<std_msgs::msg::Float64>(
-                    "/sim/motor_forces/m_" + std::to_string(i), quality::reliable_profile
-                );
+            sim_motor_pubs_[i] = this->create_publisher<std_msgs::msg::Float64>(
+                "/sim/motor_forces/m_" + std::to_string(i), quality::reliable_profile
+            );
         }
 
         // setup subscriptions
@@ -89,13 +93,12 @@ public:
             }
         );
 
-        cmd_vel_sub_ =
-            this->create_subscription<geometry_msgs::msg::Twist>(
-                "/cmd_vel", quality::volatile_profile,
-                [this](const std::shared_ptr<const geometry_msgs::msg::Twist>& msg) {
-                    this->controller_.update_desired_state(*msg);
-                }
-            );
+        cmd_vel_sub_ = this->create_subscription<geometry_msgs::msg::Twist>(
+            "/cmd_vel", quality::volatile_profile,
+            [this](const std::shared_ptr<const geometry_msgs::msg::Twist>& msg) {
+                this->controller_.update_desired_state(*msg);
+            }
+        );
 
         state_sub_ = this->create_subscription<guppy_msgs::msg::State>(
             "/state", quality::volatile_profile,
@@ -109,28 +112,20 @@ public:
             [this](
                 const std::shared_ptr<guppy_msgs::srv::SetHoldPose::Request> request,
                 std::shared_ptr<guppy_msgs::srv::SetHoldPose::Response>
-            ) {
-                this->controller_.reset_holding_pose(request);
-            },
+            ) { this->controller_.reset_holding_pose(request); },
             quality::reliable_profile
         );
 
-        timer_ = this->create_wall_timer(
-            10ms,
-            [this]() {
-                auto thrusts = this->controller_.get_motor_thrusts();
-                for (size_t i = 0; i < T200Interface::motor_count; i++) {
-                    std_msgs::msg::Float64 thrust;
-                    thrust.data = static_cast<double>(thrusts[i]);
-                    this->sim_motor_pubs_[i].get()->publish(thrust);
-                }
+        timer_ = this->create_wall_timer(10ms, [this]() {
+            auto thrusts = this->controller_.get_motor_thrusts();
+            for (size_t i = 0; i < T200Interface::motor_count; i++) {
+                std_msgs::msg::Float64 thrust;
+                thrust.data = static_cast<double>(thrusts[i]);
+                this->sim_motor_pubs_[i].get()->publish(thrust);
             }
-        );
+        });
 
-        RCLCPP_INFO(
-            this->get_logger(),
-            "Setup parameters, thrust publishers, and subscribers."
-        );
+        RCLCPP_INFO(this->get_logger(), "Setup parameters, thrust publishers, and subscribers.");
 
         bool controller_debug = false;
         this->declare_parameter("controller_debug", false);
@@ -153,16 +148,16 @@ private:
             "axis_weight_matrix", std::vector<double>(6 * 6, 0.0)
         );    // flattened 6 * 6
         this->declare_parameter<std::vector<double>>(
-            "pid_gains_vel_linear", std::vector<double>{ 0.0, 0.0, 0.0 }
+            "pid_gains_vel_linear", std::vector<double>{0.0, 0.0, 0.0}
         );
         this->declare_parameter<std::vector<double>>(
-            "pid_gains_vel_angular", std::vector<double>{ 0.0, 0.0, 0.0 }
+            "pid_gains_vel_angular", std::vector<double>{0.0, 0.0, 0.0}
         );
         this->declare_parameter<std::vector<double>>(
-            "pid_gains_pose_linear", std::vector<double>{ 0.0, 0.0, 0.0 }
+            "pid_gains_pose_linear", std::vector<double>{0.0, 0.0, 0.0}
         );
         this->declare_parameter<std::vector<double>>(
-            "pid_gains_pose_angular", std::vector<double>{ 0.0, 0.0, 0.0 }
+            "pid_gains_pose_angular", std::vector<double>{0.0, 0.0, 0.0}
         );
         this->declare_parameter<std::vector<double>>(
             "pose_lock_deadband", std::vector<double>(6, 0.0)
@@ -170,9 +165,7 @@ private:
         this->declare_parameter<std::vector<double>>(
             "drag_coefficients", std::vector<double>(6, 0.0)
         );
-        this->declare_parameter<std::vector<double>>(
-            "drag_areas", std::vector<double>(6, 0.0)
-        );
+        this->declare_parameter<std::vector<double>>("drag_areas", std::vector<double>(6, 0.0));
         this->declare_parameter<std::vector<double>>(
             "drag_effect_matrix", std::vector<double>(6 * 6, 0.0)
         );    // flattened 6x6
@@ -180,7 +173,7 @@ private:
         this->declare_parameter<double>("robot_volume", 0.0);
         this->declare_parameter<double>("robot_mass", 0.0);
         this->declare_parameter<std::vector<double>>(
-            "center_of_buoyancy", std::vector<double>{ 0.0, 0.0, 0.0 }
+            "center_of_buoyancy", std::vector<double>{0.0, 0.0, 0.0}
         );
         this->declare_parameter<double>("qp_epsilon", 0.0);
     }
@@ -206,7 +199,7 @@ private:
             const double z     = flat5N[5 * i + 2];
             const double phi   = flat5N[5 * i + 3];
             const double theta = flat5N[5 * i + 4];
-            M.col(i) = get_single_motor_coefficients(x, y, z, phi, theta);
+            M.col(i)           = get_single_motor_coefficients(x, y, z, phi, theta);
         }
         return M;
     }
@@ -226,9 +219,8 @@ private:
 
     // converts any eigen type to a string
     template <typename T>
-    static std::string eigen_to_str(
-        const Eigen::MatrixBase<T>& matrix, const Eigen::IOFormat& format
-    ) {
+    static std::string
+        eigen_to_str(const Eigen::MatrixBase<T>& matrix, const Eigen::IOFormat& format) {
         std::stringstream stream;
         stream << matrix.format(format);
         return stream.str();
@@ -236,46 +228,43 @@ private:
 
     // creates an eigen vector from a vector
     template <int N>
-    static Eigen::Matrix<double, N, 1>
-        to_eigen_vec(const std::vector<double>& vec) {
+    static Eigen::Matrix<double, N, 1> to_eigen_vec(const std::vector<double>& vec) {
         if (vec.size() != N)
-            RCLCPP_ERROR(rclcpp::get_logger("control_node"), "bad vector parameter passed to controller!");
+            RCLCPP_ERROR(
+                rclcpp::get_logger("control_node"), "bad vector parameter passed to controller!"
+            );
         return Eigen::Map<const Eigen::Matrix<double, N, 1>>(vec.data());
     }
 
     // creates an eigen matrix from a flattened vector
     template <int R, int C>
-    static Eigen::Matrix<double, R, C>
-        to_eigen_matrix(const std::vector<double>& vec) {
+    static Eigen::Matrix<double, R, C> to_eigen_matrix(const std::vector<double>& vec) {
         if (vec.size() != R * C)
-            RCLCPP_ERROR(rclcpp::get_logger("control_node"), "Bad matrix parameter passed to controller!");
-        return Eigen::Map<const Eigen::Matrix<double, R, C, Eigen::RowMajor>>(
-            vec.data()
-        );
+            RCLCPP_ERROR(
+                rclcpp::get_logger("control_node"), "Bad matrix parameter passed to controller!"
+            );
+        return Eigen::Map<const Eigen::Matrix<double, R, C, Eigen::RowMajor>>(vec.data());
     }
 
     // formatting for eigen matrices/vectors
-    inline static const Eigen::IOFormat LineFormat =
-        Eigen::IOFormat(3, 0, ", ", "\n", "[", "]");
-    inline static const Eigen::IOFormat InlineFormat =
-        Eigen::IOFormat(3, 0, ", ", "", "", "");
+    inline static const Eigen::IOFormat LineFormat   = Eigen::IOFormat(3, 0, ", ", "\n", "[", "]");
+    inline static const Eigen::IOFormat InlineFormat = Eigen::IOFormat(3, 0, ", ", "", "", "");
 
-    template<typename Parameters, typename Member, typename Transform, typename Format>
+    template <typename Parameters, typename Member, typename Transform, typename Format>
     struct ParameterDescriptor {
         std::string_view name;
         Member Parameters::* member;
-        Transform transform;
-        Format to_string;
+        Transform            transform;
+        Format               to_string;
     };
 
-    template<typename Parameters, typename Member, typename Transform, typename Format>
+    template <typename Parameters, typename Member, typename Transform, typename Format>
     ParameterDescriptor(std::string_view, Member Parameters::*, Transform, Format)
         -> ParameterDescriptor<Parameters, Member, Transform, Format>;
 
     constexpr static auto parameters = std::tuple{
         ParameterDescriptor{
-            "motor_positions",
-            &ChassisController::Parameters::motor_coefficients,
+            "motor_positions", &ChassisController::Parameters::motor_coefficients,
             [](const rclcpp::Parameter& parameter) {
                 return to_motor_coefficients<T200Interface::motor_count>(
                     parameter.as_double_array()
@@ -286,8 +275,7 @@ private:
             }
         },
         ParameterDescriptor{
-            "motor_lower_bounds",
-            &ChassisController::Parameters::motor_lower_bounds,
+            "motor_lower_bounds", &ChassisController::Parameters::motor_lower_bounds,
             [](const rclcpp::Parameter& value) {
                 return to_eigen_vec<T200Interface::motor_count>(value.as_double_array());
             },
@@ -296,8 +284,7 @@ private:
             }
         },
         ParameterDescriptor{
-            "motor_upper_bounds",
-            &ChassisController::Parameters::motor_upper_bounds,
+            "motor_upper_bounds", &ChassisController::Parameters::motor_upper_bounds,
             [](const rclcpp::Parameter& parameter) {
                 return to_eigen_vec<T200Interface::motor_count>(parameter.as_double_array());
             },
@@ -306,8 +293,7 @@ private:
             }
         },
         ParameterDescriptor{
-            "axis_weight_matrix",
-            &ChassisController::Parameters::axis_weight_matrix,
+            "axis_weight_matrix", &ChassisController::Parameters::axis_weight_matrix,
             [](const rclcpp::Parameter& value) {
                 return to_eigen_matrix<6, 6>(value.as_double_array());
             },
@@ -316,49 +302,28 @@ private:
             }
         },
         ParameterDescriptor{
-            "pid_gains_vel_linear",
-            &ChassisController::Parameters::pid_gains_vel_linear,
-            [](const rclcpp::Parameter& value) {
-                  return value.as_double_array();
-            },
-            [](const std::vector<double>& member) -> std::string {
-                return vec_to_str(member);
-            }
+            "pid_gains_vel_linear", &ChassisController::Parameters::pid_gains_vel_linear,
+            [](const rclcpp::Parameter& value) { return value.as_double_array(); },
+            [](const std::vector<double>& member) -> std::string { return vec_to_str(member); }
         },
         ParameterDescriptor{
-            "pid_gains_vel_angular",
-            &ChassisController::Parameters::pid_gains_vel_angular,
-            [](const rclcpp::Parameter& value) {
-                return value.as_double_array();
-            },
-            [](const std::vector<double>& member) -> std::string {
-                return vec_to_str(member);
-            }
+            "pid_gains_vel_angular", &ChassisController::Parameters::pid_gains_vel_angular,
+            [](const rclcpp::Parameter& value) { return value.as_double_array(); },
+            [](const std::vector<double>& member) -> std::string { return vec_to_str(member); }
         },
         ParameterDescriptor{
-            "pid_gains_pose_linear",
-            &ChassisController::Parameters::pid_gains_pose_linear,
-            [](const rclcpp::Parameter& value) {
-                return value.as_double_array();
-            },
-            [](const std::vector<double>& member) -> std::string {
-                return vec_to_str(member);
-            }
+            "pid_gains_pose_linear", &ChassisController::Parameters::pid_gains_pose_linear,
+            [](const rclcpp::Parameter& value) { return value.as_double_array(); },
+            [](const std::vector<double>& member) -> std::string { return vec_to_str(member); }
         },
         ParameterDescriptor{
-            "pid_gains_pose_angular",
-            &ChassisController::Parameters::pid_gains_pose_angular,
+            "pid_gains_pose_angular", &ChassisController::Parameters::pid_gains_pose_angular,
+            [](const rclcpp::Parameter& parameter) { return parameter.as_double_array(); },
+            [](const std::vector<double>& member) -> std::string { return vec_to_str(member); }
+        },
+        ParameterDescriptor{
+            "pose_lock_deadband", &ChassisController::Parameters::pose_lock_deadband,
             [](const rclcpp::Parameter& parameter) {
-                return parameter.as_double_array();
-            },
-            [](const std::vector<double>& member) -> std::string {
-                return vec_to_str(member);
-            }
-        },
-        ParameterDescriptor{
-            "pose_lock_deadband",
-            &ChassisController::Parameters::pose_lock_deadband,
-            [](const rclcpp::Parameter& parameter){
                 return to_eigen_vec<6>(parameter.as_double_array());
             },
             [](const Eigen::Matrix<double, 6, 1>& member) -> std::string {
@@ -366,9 +331,8 @@ private:
             }
         },
         ParameterDescriptor{
-            "drag_coefficients",
-            &ChassisController::Parameters::drag_coefficients,
-            [](const rclcpp::Parameter& parameter){
+            "drag_coefficients", &ChassisController::Parameters::drag_coefficients,
+            [](const rclcpp::Parameter& parameter) {
                 return to_eigen_vec<6>(parameter.as_double_array());
             },
             [](const Eigen::Matrix<double, 6, 1>& member) -> std::string {
@@ -376,9 +340,8 @@ private:
             }
         },
         ParameterDescriptor{
-            "drag_areas",
-            &ChassisController::Parameters::drag_areas,
-            [](const rclcpp::Parameter& parameter){
+            "drag_areas", &ChassisController::Parameters::drag_areas,
+            [](const rclcpp::Parameter& parameter) {
                 return to_eigen_vec<6>(parameter.as_double_array());
             },
             [](const Eigen::Matrix<double, 6, 1>& member) -> std::string {
@@ -386,9 +349,8 @@ private:
             }
         },
         ParameterDescriptor{
-            "drag_effect_matrix",
-            &ChassisController::Parameters::drag_effect_matrix,
-            [](const rclcpp::Parameter& parameter){
+            "drag_effect_matrix", &ChassisController::Parameters::drag_effect_matrix,
+            [](const rclcpp::Parameter& parameter) {
                 return to_eigen_matrix<6, 6>(parameter.as_double_array());
             },
             [](const Eigen::Matrix<double, 6, 6>& member) -> std::string {
@@ -396,39 +358,23 @@ private:
             }
         },
         ParameterDescriptor{
-            "water_density",
-            &ChassisController::Parameters::water_density,
-            [](const rclcpp::Parameter& parameter){
-                return parameter.as_double();
-            },
-            [](double member) -> std::string {
-                return std::to_string(member);
-            }
+            "water_density", &ChassisController::Parameters::water_density,
+            [](const rclcpp::Parameter& parameter) { return parameter.as_double(); },
+            [](double member) -> std::string { return std::to_string(member); }
         },
         ParameterDescriptor{
-            "robot_volume",
-            &ChassisController::Parameters::robot_volume,
-            [](const rclcpp::Parameter& parameter){
-                return parameter.as_double();
-            },
-            [](double member) -> std::string {
-                return std::to_string(member);
-            }
+            "robot_volume", &ChassisController::Parameters::robot_volume,
+            [](const rclcpp::Parameter& parameter) { return parameter.as_double(); },
+            [](double member) -> std::string { return std::to_string(member); }
         },
         ParameterDescriptor{
-            "robot_mass",
-            &ChassisController::Parameters::robot_mass,
-            [](const rclcpp::Parameter& parameter){
-                return parameter.as_double();
-            },
-            [](double member) -> std::string {
-                return std::to_string(member);
-            }
+            "robot_mass", &ChassisController::Parameters::robot_mass,
+            [](const rclcpp::Parameter& parameter) { return parameter.as_double(); },
+            [](double member) -> std::string { return std::to_string(member); }
         },
         ParameterDescriptor{
-            "center_of_buoyancy",
-            &ChassisController::Parameters::center_of_buoyancy,
-            [](const rclcpp::Parameter& parameter){
+            "center_of_buoyancy", &ChassisController::Parameters::center_of_buoyancy,
+            [](const rclcpp::Parameter& parameter) {
                 return to_eigen_vec<3>(parameter.as_double_array());
             },
             [](const Eigen::Matrix<double, 3, 1>& member) -> std::string {
@@ -436,37 +382,35 @@ private:
             }
         },
         ParameterDescriptor{
-            "qp_epsilon",
-            &ChassisController::Parameters::qp_epsilon,
-            [](const rclcpp::Parameter& parameter){
-                return parameter.as_double();
-            },
-            [](double member) -> std::string {
-                return std::to_string(member);
-            }
+            "qp_epsilon", &ChassisController::Parameters::qp_epsilon,
+            [](const rclcpp::Parameter& parameter) { return parameter.as_double(); },
+            [](double member) -> std::string { return std::to_string(member); }
         }
     };
 
-    using ParameterHandler = std::function<std::pair<std::string, std::string>(ChassisController::Parameters&, const rclcpp::Parameter&)>;
+    using ParameterHandler = std::function<std::pair<std::string, std::string>(
+        ChassisController::Parameters&, const rclcpp::Parameter&
+    )>;
 
     static const std::unordered_map<std::string, ParameterHandler>& parameter_handlers() {
         static const std::unordered_map<std::string, ParameterHandler> handlers = [] {
             std::unordered_map<std::string, ParameterHandler> map;
             std::apply(
                 [&map](const auto&... descriptor) {
-                    (
-                        map.emplace(
-                            descriptor.name,
-                            [descriptor](ChassisController::Parameters& parameters, const rclcpp::Parameter& value) {
-                                auto& member = parameters.*descriptor.member;
-                                std::string before = descriptor.to_string(member);
-                                member = descriptor.transform(value);
-                                std::string after = descriptor.to_string(member);
-                                return std::make_pair(before, after);
-                            }
-                        ),
-                        ...
-                    );
+                    (map.emplace(
+                         descriptor.name,
+                         [descriptor](
+                             ChassisController::Parameters& parameters,
+                             const rclcpp::Parameter&       value
+                         ) {
+                             auto&       member = parameters.*descriptor.member;
+                             std::string before = descriptor.to_string(member);
+                             member             = descriptor.transform(value);
+                             std::string after  = descriptor.to_string(member);
+                             return std::make_pair(before, after);
+                         }
+                     ),
+                     ...);
                 },
                 ControlNode::parameters
             );
@@ -496,9 +440,8 @@ private:
       positive up)
       @param theta the theta of the thruster in spherical coordinates (degrees)
     */
-    static Eigen::Matrix<double, 6, 1> get_single_motor_coefficients(
-        double x, double y, double z, double phi, double theta
-    ) {
+    static Eigen::Matrix<double, 6, 1>
+        get_single_motor_coefficients(double x, double y, double z, double phi, double theta) {
         Eigen::Matrix<double, 6, 1> out;
         // convert to rads
         double p = (90 - phi) * (M_PI / 180);
@@ -509,8 +452,7 @@ private:
         double cost = cos(t);
         double cosp = cos(p);
         out << sinp * cost, sinp * sint, cosp, (z * sinp * sint) - (y * cosp),
-            (x * cosp) - (z * sinp * cost),
-            (y * sinp * cost) - (x * sinp * sint);
+            (x * cosp) - (z * sinp * cost), (y * sinp * cost) - (x * sinp * sint);
         return out;
     }
 };

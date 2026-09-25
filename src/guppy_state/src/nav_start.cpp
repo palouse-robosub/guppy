@@ -1,11 +1,11 @@
-#include <memory>
-
 #include "guppy_msgs/msg/can_frame.hpp"
 #include "guppy_msgs/msg/state.hpp"
 #include "guppy_msgs/srv/change_state.hpp"
 #include "guppy_util/quality.hpp"
-#include "rclcpp/node.hpp"
 #include "rclcpp/executors.hpp"
+#include "rclcpp/node.hpp"
+
+#include <memory>
 
 using namespace std::chrono_literals;
 
@@ -13,16 +13,13 @@ class NavStart : public rclcpp::Node {
 private:
     std::shared_ptr<rclcpp::Subscription<guppy_msgs::msg::CanFrame>> nav_switch_sub_;
     std::shared_ptr<rclcpp::Client<guppy_msgs::srv::ChangeState>>    state_client_;
-    bool                                                       was_nav_ = false;
-    bool                                                       initialized_ = false;
+    bool                                                             was_nav_     = false;
+    bool                                                             initialized_ = false;
 public:
     NavStart() : Node("navstart") {
         nav_switch_sub_ = this->create_subscription<guppy_msgs::msg::CanFrame>(
-            "/can/id_0x22",
-            quality::reliable_profile,
-            [this](guppy_msgs::msg::CanFrame msg) {
-                this->switch_callback(msg);
-            }
+            "/can/id_0x22", quality::reliable_profile,
+            [this](guppy_msgs::msg::CanFrame msg) { this->switch_callback(msg); }
         );
         state_client_ = this->create_client<guppy_msgs::srv::ChangeState>("change_state");
     }

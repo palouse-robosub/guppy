@@ -2,24 +2,17 @@
 
 // public methods
 FaceDetectionBehavior::FaceDetectionBehavior(
-    const std::string& name,
-    const BT::NodeConfig& config,
-    const BT::RosNodeParams& parameters
+    const std::string& name, const BT::NodeConfig& config, const BT::RosNodeParams& parameters
 ) : BT::RosActionNode<guppy_msgs::action::Navigate>(name, config, parameters) { }
 
 BT::PortsList FaceDetectionBehavior::providedPorts() {
     return providedBasicPorts(
-        {
-            BT::InputPort<double>("detection"),
-            BT::InputPort<double>("timeout"),
-            BT::InputPort<bool>("continueOnTimeout")
-        }
+        {BT::InputPort<double>("detection"), BT::InputPort<double>("timeout"),
+         BT::InputPort<bool>("continueOnTimeout")}
     );
 }
 
-bool FaceDetectionBehavior::setGoal(
-    BT::RosActionNode<guppy_msgs::action::Navigate>::Goal& goal
-) {
+bool FaceDetectionBehavior::setGoal(BT::RosActionNode<guppy_msgs::action::Navigate>::Goal& goal) {
     guppy_msgs::msg::CornerDetection detection;
     this->getInput("detection", detection);
 
@@ -27,15 +20,17 @@ bool FaceDetectionBehavior::setGoal(
     for (auto corner : detection.corners)
         x += corner.x, y += corner.y;
 
-    auto size = detection.corners.size();
+    auto size  = detection.corners.size();
     x /= size, y /= size;
 
-    auto roll = 0.0, pitch = FaceDetectionBehavior::camera_max_angle_pitch * (y / FaceDetectionBehavior::camera_resolution_y),
-            yaw = FaceDetectionBehavior::camera_max_angle_yaw * (x / FaceDetectionBehavior::camera_resolution_x);
-    Eigen::Quaterniond q =
-        Eigen::AngleAxisd(roll, Eigen::Vector3d::UnitX())
-        * Eigen::AngleAxisd(pitch, Eigen::Vector3d::UnitY())
-        * Eigen::AngleAxisd(yaw, Eigen::Vector3d::UnitZ());
+    auto roll  = 0.0,
+         pitch = FaceDetectionBehavior::camera_max_angle_pitch
+               * (y / FaceDetectionBehavior::camera_resolution_y),
+         yaw = FaceDetectionBehavior::camera_max_angle_yaw
+             * (x / FaceDetectionBehavior::camera_resolution_x);
+    Eigen::Quaterniond q = Eigen::AngleAxisd(roll, Eigen::Vector3d::UnitX())
+                         * Eigen::AngleAxisd(pitch, Eigen::Vector3d::UnitY())
+                         * Eigen::AngleAxisd(yaw, Eigen::Vector3d::UnitZ());
 
     goal.pose.position.x = goal.pose.position.y = goal.pose.position.z =
         0.0;    // doesn't move position
@@ -61,9 +56,7 @@ BT::NodeStatus FaceDetectionBehavior::onFailure(BT::ActionNodeErrorCode error) {
         RCLCPP_INFO(this->logger(), "pose setter action aborted, continuing...");
         return BT::NodeStatus::SUCCESS;
     } else {
-        RCLCPP_ERROR(
-            this->logger(), "pose setter node error... %s", BT::toStr(error)
-        );
+        RCLCPP_ERROR(this->logger(), "pose setter node error... %s", BT::toStr(error));
         return BT::NodeStatus::FAILURE;
     }
 }

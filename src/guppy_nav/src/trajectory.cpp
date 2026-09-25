@@ -2,15 +2,15 @@
 
 // public members
 Trajectory::Trajectory(
-    double start_velocity, double end_velocity, double attack, double decay,
-    double total_time, double target_position
+    double start_velocity, double end_velocity, double attack, double decay, double total_time,
+    double target_position
 ) :
-    start_velocity(start_velocity), end_velocity(end_velocity),
-    total_time(total_time), target_position(target_position) {
+    start_velocity(start_velocity), end_velocity(end_velocity), total_time(total_time),
+    target_position(target_position) {
     attack_time = total_time * attack, decay_time = total_time * (1 - decay),
     max_velocity = compute_max_velocity();
-    k1          = (max_velocity - start_velocity) / attack_time,
-    c2 = compute_position_1(attack_time), c3 = compute_position_2(decay_time),
+    k1 = (max_velocity - start_velocity) / attack_time, c2 = compute_position_1(attack_time),
+    c3 = compute_position_2(decay_time),
     k3 = (end_velocity - max_velocity) / (total_time - decay_time);
 }
 

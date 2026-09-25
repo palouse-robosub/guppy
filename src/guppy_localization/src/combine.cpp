@@ -1,29 +1,28 @@
+#include "guppy_util/quality.hpp"
+
+#include <Eigen/Geometry>
 #include <geometry_msgs/msg/point.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <nav_msgs/msg/odometry.hpp>
+#include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/imu.hpp>
 #include <std_srvs/srv/empty.hpp>
 #include <tf2_ros/transform_broadcaster.hpp>
-#include <rclcpp/rclcpp.hpp>
-#include <Eigen/Geometry>
-
-#include "guppy_util/quality.hpp"
 
 class CombineSensors : public rclcpp::Node {
-
 private:
-    std::shared_ptr<rclcpp::Publisher<nav_msgs::msg::Odometry>>                          odom_pub_ =
+    std::shared_ptr<rclcpp::Publisher<nav_msgs::msg::Odometry>> odom_pub_ =
         this->create_publisher<nav_msgs::msg::Odometry>(
             "/odometry/filtered", quality::volatile_profile
         );
-    std::shared_ptr<rclcpp::Subscription<sensor_msgs::msg::Imu>>                         imu_sub_ =
+    std::shared_ptr<rclcpp::Subscription<sensor_msgs::msg::Imu>> imu_sub_ =
         this->create_subscription<sensor_msgs::msg::Imu>(
             "/vectornav/imu", quality::volatile_profile,
             [this](const std::shared_ptr<const sensor_msgs::msg::Imu>& msg) {
                 this->imu_callback(*msg);
             }
         );
-    std::shared_ptr<rclcpp::Subscription<nav_msgs::msg::Odometry>>                       dvl_sub_ =
+    std::shared_ptr<rclcpp::Subscription<nav_msgs::msg::Odometry>> dvl_sub_ =
         this->create_subscription<nav_msgs::msg::Odometry>(
             "/waterlinked_dvl_driver/odom", quality::volatile_profile,
             [this](const std::shared_ptr<const nav_msgs::msg::Odometry>& msg) {
@@ -37,22 +36,24 @@ private:
                 this->baro_callback(*msg);
             }
         );
-    std::unique_ptr<tf2_ros::TransformBroadcaster>                                       tf_broadcaster_ =
+    std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_ =
         std::make_unique<tf2_ros::TransformBroadcaster>(*this);
 
-      nav_msgs::msg::Odometry odom_;
+    nav_msgs::msg::Odometry odom_;
 
-      Eigen::Quaterniond        initial_orientation_;
-      geometry_msgs::msg::Point initial_pose_{};
-      bool                      has_initial_ = false;
+    Eigen::Quaterniond        initial_orientation_;
+    geometry_msgs::msg::Point initial_pose_{};
+    bool                      has_initial_ = false;
 
-      std::shared_ptr<rclcpp::Service<std_srvs::srv::Empty>> reset_service_;
-  public:
+    std::shared_ptr<rclcpp::Service<std_srvs::srv::Empty>> reset_service_;
+public:
     CombineSensors() : Node("combine_sensors") {
         reset_service_ = this->create_service<std_srvs::srv::Empty>(
             "reset_odom",
-            [this](const std::shared_ptr<std_srvs::srv::Empty::Request>,
-                std::shared_ptr<std_srvs::srv::Empty::Response>) {
+            [this](
+                const std::shared_ptr<std_srvs::srv::Empty::Request>,
+                std::shared_ptr<std_srvs::srv::Empty::Response>
+            ) {
                 initial_pose_.x      = odom_.pose.pose.position.x;
                 initial_pose_.y      = odom_.pose.pose.position.y;
                 initial_pose_.z      = odom_.pose.pose.position.z;
@@ -71,14 +72,11 @@ private:
         tf_broadcaster_->sendTransform(msg);
     }
 
-
     ~CombineSensors() {
         // ...
     }
 
-    void baro_callback(
-        const geometry_msgs::msg::PoseWithCovarianceStamped& msg
-    ) {
+    void baro_callback(const geometry_msgs::msg::PoseWithCovarianceStamped& msg) {
         odom_.pose.pose.position.z = msg.pose.pose.position.z - initial_pose_.z;
         odom_pub_->publish(odom_);
         publish_transform();
@@ -86,18 +84,14 @@ private:
 
     void dvl_callback(const nav_msgs::msg::Odometry& msg) {
         // Rotate DVL frame -> body frame (your existing transform)
-        Eigen::Quaterniond q_dvl_to_body(
-            Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitY())
-        );
+        Eigen::Quaterniond q_dvl_to_body(Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitY()));
 
         Eigen::Vector3d position(
-            msg.pose.pose.position.x, msg.pose.pose.position.y,
-            msg.pose.pose.position.z
+            msg.pose.pose.position.x, msg.pose.pose.position.y, msg.pose.pose.position.z
         );
 
         Eigen::Vector3d twist(
-            msg.twist.twist.linear.x, msg.twist.twist.linear.y,
-            msg.twist.twist.linear.z
+            msg.twist.twist.linear.x, msg.twist.twist.linear.y, msg.twist.twist.linear.z
         );
 
         position = q_dvl_to_body * position;
@@ -124,8 +118,7 @@ private:
 
         // Lever arm velocity correction
         Eigen::Vector3d omega(
-            odom_.twist.twist.angular.x, odom_.twist.twist.angular.y,
-            odom_.twist.twist.angular.z
+            odom_.twist.twist.angular.x, odom_.twist.twist.angular.y, odom_.twist.twist.angular.z
         );
 
         Eigen::Vector3d corrected_twist = twist - omega.cross(r_body);
@@ -144,12 +137,10 @@ private:
         Eigen::Quaterniond quat(angle_axis);
 
         Eigen::Quaternion orientation(
-            msg.orientation.w, msg.orientation.x, msg.orientation.y,
-            msg.orientation.z
+            msg.orientation.w, msg.orientation.x, msg.orientation.y, msg.orientation.z
         );
         Eigen::Vector3d twist(
-            msg.angular_velocity.x, msg.angular_velocity.y,
-            msg.angular_velocity.z
+            msg.angular_velocity.x, msg.angular_velocity.y, msg.angular_velocity.z
         );
 
         orientation = orientation * quat;

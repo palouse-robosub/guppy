@@ -1,19 +1,19 @@
 #ifndef CAN_HPP
 #define CAN_HPP
 
+#include "rclcpp/logger.hpp"
+
 #include <linux/can.h>
 #include <string_view>
-
-#include "rclcpp/logger.hpp"
 
 class Socket {
 private:
     const rclcpp::Logger logger_ = rclcpp::get_logger("Socket");
-    unsigned int descriptor_;
-    bool active_;
+    unsigned int         descriptor_;
+    bool                 active_;
 public:
     Socket(std::string_view interface, rclcpp::Logger logger);
-    Socket(const Socket&) = delete;
+    Socket(const Socket&)            = delete;
     Socket& operator=(const Socket&) = delete;
     Socket(Socket&& other);
     Socket& operator=(Socket&& other);

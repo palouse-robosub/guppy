@@ -1,40 +1,38 @@
 #include "guppy_msgs/srv/send_can.hpp"
-#include "rclcpp/node.hpp"
-#include "rclcpp/executors.hpp"
-
 #include "guppy_util/can.hpp"
 #include "guppy_util/quality.hpp"
+#include "rclcpp/executors.hpp"
+#include "rclcpp/node.hpp"
 
 class CanTx : public rclcpp::Node {
 private:
     const Socket                                                           socket_;
     const std::shared_ptr<const rclcpp::Service<guppy_msgs::srv::SendCan>> send_service_;
 public:
-    CanTx() : Node("can_tx"), socket_("can0", this->get_logger()),
-    send_service_(
-        this->create_service<guppy_msgs::srv::SendCan>(
+    CanTx() :
+        Node("can_tx"), socket_("can0", this->get_logger()),
+        send_service_(this->create_service<guppy_msgs::srv::SendCan>(
             "can_tx",
             [this](
-                const std::shared_ptr<guppy_msgs::srv::SendCan::Request>& request,
+                const std::shared_ptr<guppy_msgs::srv::SendCan::Request>&  request,
                 const std::shared_ptr<guppy_msgs::srv::SendCan::Response>& response
-            ) {
-                this->send(request, response);
-            },
+            ) { this->send(request, response); },
             quality::volatile_profile
-        )
-    ) {
+        )) {
         RCLCPP_INFO(this->get_logger(), "CAN TX service ready.");
     }
 private:
     void send(
-        const std::shared_ptr<const guppy_msgs::srv::SendCan::Request>&  request,
-        const std::shared_ptr<guppy_msgs::srv::SendCan::Response>&       response
+        const std::shared_ptr<const guppy_msgs::srv::SendCan::Request>& request,
+        const std::shared_ptr<guppy_msgs::srv::SendCan::Response>&      response
     ) {
         can_frame frame{};
         frame.can_id = request->id;
-        auto length = static_cast<__u8>(request->data.size());
+        auto length  = static_cast<__u8>(request->data.size());
         if (length > 8) {
-            RCLCPP_ERROR(this->get_logger(), "CAN payload too large (%zu bytes)", request->data.size());
+            RCLCPP_ERROR(
+                this->get_logger(), "CAN payload too large (%zu bytes)", request->data.size()
+            );
             response->success = false;
             return;
         }

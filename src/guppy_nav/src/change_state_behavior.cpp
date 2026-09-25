@@ -2,15 +2,13 @@
 
 // public methods
 ChangeStateBehavior::ChangeStateBehavior(
-    const std::string& name,
-    const BT::NodeConfig& config,
-    const BT::RosNodeParams& parameters
+    const std::string& name, const BT::NodeConfig& config, const BT::RosNodeParams& parameters
 ) : RosServiceNode<guppy_msgs::srv::ChangeState>(name, config, parameters) {
     RCLCPP_INFO(this->logger(), "ChangeState behavior initialized.");
 }
 
 BT::PortsList ChangeStateBehavior::providedPorts() {
-    return providedBasicPorts({ BT::InputPort<uint8_t>("state") });
+    return providedBasicPorts({BT::InputPort<uint8_t>("state")});
 }
 
 bool ChangeStateBehavior::setRequest(std::shared_ptr<Request>& request) {

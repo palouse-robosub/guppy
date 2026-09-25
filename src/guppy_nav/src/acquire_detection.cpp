@@ -2,23 +2,18 @@
 
 //  public methods
 AcquireDetection::AcquireDetection(
-    const std::string& name,
-    const BT::NodeConfig& config,
-    const BT::RosNodeParams& parameters
-) : BT::RosTopicSubNode<guppy_msgs::msg::CornerDetectionList>(
-    name, config, parameters
-) { }
+    const std::string& name, const BT::NodeConfig& config, const BT::RosNodeParams& parameters
+) : BT::RosTopicSubNode<guppy_msgs::msg::CornerDetectionList>(name, config, parameters) { }
 
 BT::PortsList AcquireDetection::providedPorts() {
     return providedBasicPorts(
-        { BT::InputPort<std::string>("target"),
-            BT::OutputPort<guppy_msgs::msg::CornerDetection>("detection") }
+        {BT::InputPort<std::string>("target"),
+         BT::OutputPort<guppy_msgs::msg::CornerDetection>("detection")}
     );
 }
 
-BT::NodeStatus AcquireDetection::onTick(
-    const std::shared_ptr<guppy_msgs::msg::CornerDetectionList>& msg
-) {
+BT::NodeStatus
+    AcquireDetection::onTick(const std::shared_ptr<guppy_msgs::msg::CornerDetectionList>& msg) {
     if (!msg)
         return BT::NodeStatus::FAILURE;    // no detections in list
 
@@ -41,8 +36,7 @@ BT::NodeStatus AcquireDetection::onTick(
 
 // private methods
 bool AcquireDetection::matchesTarget(
-    const guppy_msgs::msg::CornerDetection detection,
-    std::string_view                       target
+    const guppy_msgs::msg::CornerDetection detection, std::string_view target
 ) {
     return detection.name == target;
 }
