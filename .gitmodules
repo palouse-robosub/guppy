@@ -4,7 +4,7 @@
 	branch = ros2
 [submodule "vendor/waterlinked_dvl"]
 	path = vendor/waterlinked_dvl
-	url = https://github.com/Robotic-Decision-Making-Lab/waterlinked_dvl
+	url = https://github.com/andy-sorge/waterlinked_dvl
 [submodule "vendor/json"]
 	path = vendor/json
 	url = https://github.com/nlohmann/json
