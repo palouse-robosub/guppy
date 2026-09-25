@@ -1,98 +1,58 @@
 #include "guppy_msgs/srv/send_can.hpp"
-#include "rclcpp/rclcpp.hpp"
+#include "guppy_util/can.hpp"
+#include "guppy_util/quality.hpp"
+#include "rclcpp/executors.hpp"
+#include "rclcpp/node.hpp"
 
-#include <cstdio>
-#include <cstring>
-#include <memory>
-
-#include <linux/can.h>
-#include <net/if.h>
-#include <sys/ioctl.h>
-#include <sys/socket.h>
-#include <unistd.h>
-
-static int sock_ = -1;
-
-bool setup_can_socket() {
-    sock_ = socket(PF_CAN, SOCK_RAW, CAN_RAW);
-    if (sock_ < 0) {
-        perror("socket");
-        return false;
+class CanTx : public rclcpp::Node {
+private:
+    const Socket                                                           socket_;
+    const std::shared_ptr<const rclcpp::Service<guppy_msgs::srv::SendCan>> send_service_;
+public:
+    CanTx() :
+        Node("can_tx"), socket_("can0", this->get_logger()),
+        send_service_(this->create_service<guppy_msgs::srv::SendCan>(
+            "can_tx",
+            [this](
+                const std::shared_ptr<guppy_msgs::srv::SendCan::Request>&  request,
+                const std::shared_ptr<guppy_msgs::srv::SendCan::Response>& response
+            ) { this->send(request, response); },
+            quality::volatile_profile
+        )) {
+        RCLCPP_INFO(this->get_logger(), "CAN TX service ready.");
     }
-
-    ifreq       ifr{};
-    const char* can_net = "can0";
-    std::strncpy(ifr.ifr_name, can_net, IFNAMSIZ - 1);
-
-    if (ioctl(sock_, SIOCGIFINDEX, &ifr) < 0) {
-        perror("SIOCGIFINDEX");
-        return false;
+private:
+    void send(
+        const std::shared_ptr<const guppy_msgs::srv::SendCan::Request>& request,
+        const std::shared_ptr<guppy_msgs::srv::SendCan::Response>&      response
+    ) {
+        can_frame frame{};
+        frame.can_id = request->id;
+        auto length  = static_cast<__u8>(request->data.size());
+        if (length > 8) {
+            RCLCPP_ERROR(
+                this->get_logger(), "CAN payload too large (%zu bytes)", request->data.size()
+            );
+            response->success = false;
+            return;
+        }
+        frame.len = length;
+        std::memcpy(frame.data, request->data.data(), length);
+        size_t bytes_written;
+        if (!socket_.write(&frame, &bytes_written)) {
+            RCLCPP_ERROR(this->get_logger(), "Failed to send message over CAN!");
+            response->success = false;
+            return;
+        }
+        response->written = static_cast<uint8_t>(bytes_written);
+        response->success = true;
     }
+};
 
-    sockaddr_can addr{};
-    addr.can_family  = AF_CAN;
-    addr.can_ifindex = ifr.ifr_ifindex;
-
-    if (bind(sock_, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0) {
-        perror("bind");
-        return false;
-    }
-
-    return true;
-}
-
-void send(
-    const std::shared_ptr<guppy_msgs::srv::SendCan::Request> request,
-    std::shared_ptr<guppy_msgs::srv::SendCan::Response>      response
-) {
-    can_frame frame{};
-    frame.can_id  = request->id;
-    frame.can_dlc = request->data.size();
-
-    if (frame.can_dlc > 8) {
-        RCLCPP_ERROR(
-            rclcpp::get_logger("can_tx"), "CAN payload too large (%zu bytes)",
-            request->data.size()
-        );
-        response->written = -1;
-        return;
-    }
-
-    std::memcpy(frame.data, request->data.data(), frame.can_dlc);
-
-    ssize_t nbytes    = write(sock_, &frame, sizeof(frame));
-    response->written = nbytes;
-
-    if (nbytes < 0)
-        perror("write");
-}
-
-int main(int argc, char** argv) {
+int main(int argc, char* argv[]) {
     rclcpp::init(argc, argv);
-
-    if (!setup_can_socket()) {
-        RCLCPP_FATAL(
-            rclcpp::get_logger("can_tx"), "Failed to setup CAN socket"
-        );
-        return 1;
-    }
-
-    auto node = rclcpp::Node::make_shared("can_tx");
-
-    auto service = node->create_service<guppy_msgs::srv::SendCan>(
-        "can_tx",
-        [](const std::shared_ptr<guppy_msgs::srv::SendCan::Request> request,
-           std::shared_ptr<guppy_msgs::srv::SendCan::Response>      response) {
-            send(request, response);
-        },
-        10
-    );
-
-    RCLCPP_INFO(node->get_logger(), "CAN TX service ready");
-
-    rclcpp::spin(node);
-
-    close(sock_);
+    const auto transmit_node = std::make_shared<CanTx>();
+    rclcpp::spin(transmit_node);
     rclcpp::shutdown();
     return 0;
 }

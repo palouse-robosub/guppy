@@ -1,18 +1,20 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>guppy_can</name>
+  <name>guppy_util</name>
   <version>0.0.0</version>
-  <description>CAN Bus nodes and services for Guppy</description>
-  <maintainer email="asorge29@gmail.com">Andy Sorge</maintainer>
+  <description>Utility package for Python and C++</description>
+  <maintainer email="ryden@handsaker.org">Palouse RoboSub</maintainer>
   <license>Apache-2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
+  <!-- <buildtool_depend>ament_cmake_python</buildtool_depend> -->
 
+  <!-- c++ dependencies -->
   <depend>rclcpp</depend>
-  <depend>std_msgs</depend>
-  <depend>guppy_msgs</depend>
-  <depend>guppy_util</depend>
+
+  <!-- python dependencies -->
+  <!-- <depend>rclpy</depend> -->
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

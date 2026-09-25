@@ -1,11 +1,11 @@
-geometry_msgs/Pose pose
-bool local true
-float64 timeout 10
-float64 tolerance 0.1
+geometry_msgs/Pose   pose
+bool                 local       true
+float64              timeout     10
+float64              tolerance   0.1
 ---
-geometry_msgs/Pose pose #final relative position
-geometry_msgs/Pose error
-bool target_reached #if guppy made it to the target pose
+geometry_msgs/Pose   pose             #final relative position
+geometry_msgs/Pose   error
+bool                 target_reached   #if guppy made it to the target pose
 ---
-geometry_msgs/Pose progress #current progess relative to start
-float64 percent_done
+geometry_msgs/Pose   progress         #current progess relative to start
+float64              percent_done

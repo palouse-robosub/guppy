@@ -1,42 +1,91 @@
 cmake_minimum_required(VERSION 3.8)
 project(guppy_state)
 
-# Default to C++17 for ROS2 Jazzy compatibility
-if (NOT CMAKE_CXX_STANDARD)
-    set(CMAKE_CXX_STANDARD 17)
-endif ()
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Enable warnings
-if (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    add_compile_options(-Wall -Wextra -Wpedantic)
-endif ()
+add_compile_options(
+  -Wall
+  -Wextra
+  -Wpedantic
+)
 
-# find dependencies
+# dependencies
+
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(guppy_msgs REQUIRED)
+find_package(guppy_util REQUIRED)
 
-add_executable(state_manager src/state_manager.cpp)
-add_executable(navstart src/navstart.cpp)
-add_executable(led_pub src/led_pub.cpp)
-ament_target_dependencies(led_pub rclcpp std_msgs guppy_msgs)
-ament_target_dependencies(state_manager rclcpp std_srvs std_msgs geometry_msgs guppy_msgs)
-ament_target_dependencies(navstart rclcpp std_msgs geometry_msgs guppy_msgs)
+# executables
 
-install(DIRECTORY
-  launch
-
-  DESTINATION share/${PROJECT_NAME}/
+add_executable(state_manager
+  src/state_manager.cpp
 )
 
-install(TARGETS
-  state_manager # what goes here
-  led_pub
-  navstart
-  DESTINATION lib/${PROJECT_NAME})
+ament_target_dependencies(state_manager
+  rclcpp
+  std_srvs
+  std_msgs
+  geometry_msgs
+  guppy_msgs
+)
+
+target_link_libraries(state_manager
+  guppy_util::guppy_util
+)
+
+
+add_executable(nav_start
+  src/nav_start.cpp
+)
+
+ament_target_dependencies(nav_start
+  rclcpp
+  std_msgs
+  geometry_msgs
+  guppy_msgs
+)
+
+target_link_libraries(nav_start
+  guppy_util::guppy_util
+)
+
+
+add_executable(led_pub
+  src/led_pub.cpp
+)
+
+ament_target_dependencies(led_pub
+  rclcpp
+  std_msgs
+  guppy_msgs
+)
+
+target_link_libraries(led_pub
+  guppy_util::guppy_util
+)
+
+# installation
+
+install(
+  TARGETS
+    state_manager
+    led_pub
+    nav_start
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+install(
+  DIRECTORY launch/
+  DESTINATION share/${PROJECT_NAME}/launch
+)
+
+# testing
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -49,5 +98,7 @@ if(BUILD_TESTING)
   set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
 endif()
+
+# package
 
 ament_package()

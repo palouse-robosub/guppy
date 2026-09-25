@@ -2,5 +2,5 @@
 <launch>
     <node pkg="guppy_state" exec="state_manager" output="screen"/>
     <node pkg="guppy_state" exec="led_pub" output="screen"/>
-    <node pkg="guppy_state" exec="navstart" output="screen"/>
+    <node pkg="guppy_state" exec="nav_start" output="screen"/>
 </launch>
