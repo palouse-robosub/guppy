@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.10)
 project(guppy_control)
 
 # Default to C++17 for ROS2 Jazzy compatibility
