@@ -2,24 +2,17 @@
 #include "rclcpp/node.hpp"
 #include "rclcpp/executors.hpp"
 
-#include <linux/can.h>
-#include <linux/if.h>
-#include <sys/ioctl.h>
-#include <sys/socket.h>
-#include <unistd.h>
+#include "guppy_util/can.hpp"
+#include "guppy_util/quality.hpp"
 
 class CanTx : public rclcpp::Node {
-public:
-    static inline const auto reliable_profile = rclcpp::QoS(10).reliable();
-    static inline const auto volatile_profile = rclcpp::QoS(10).best_effort().durability_volatile();
 private:
-    int socket_ = -1;
-    rclcpp::Service<guppy_msgs::srv::SendCan>::SharedPtr send_service_;
+    const Socket                                                           socket_;
+    const std::shared_ptr<const rclcpp::Service<guppy_msgs::srv::SendCan>> send_service_;
 public:
-    CanTx() : Node("can_tx") {
-        initialize_socket();
-
-        this->send_service_ = this->create_service<guppy_msgs::srv::SendCan>(
+    CanTx() : Node("can_tx"), socket_("can0", this->get_logger()),
+    send_service_(
+        this->create_service<guppy_msgs::srv::SendCan>(
             "can_tx",
             [this](
                 const std::shared_ptr<guppy_msgs::srv::SendCan::Request>& request,
@@ -27,53 +20,34 @@ public:
             ) {
                 this->send(request, response);
             },
-            volatile_profile
-        );
-
+            quality::volatile_profile
+        )
+    ) {
         RCLCPP_INFO(this->get_logger(), "CAN TX service ready.");
     }
-
-    ~CanTx() {
-        if (socket_ > 0)
-            close(socket_);
-    }
 private:
-    void initialize_socket() {
-        this->socket_ = socket(PF_CAN, SOCK_RAW, CAN_RAW);
-        if (this->socket_ < 0)
-            RCLCPP_FATAL(this->get_logger(), "Failed to create CAN socket!");
-        ifreq request{};
-        std::strncpy(request.ifr_name, "can0", IFNAMSIZ);
-        if (ioctl(socket_, SIOCGIFINDEX, &request) < 0)
-            RCLCPP_FATAL(this->get_logger(), "SIOCGIFINDEX");
-        sockaddr_can address{};
-        address.can_family = AF_CAN, address.can_ifindex = request.ifr_ifindex;
-        if (bind(socket_, reinterpret_cast<const sockaddr*>(&address), sizeof(address)) < 0)
-            RCLCPP_FATAL(this->get_logger(), "Failed to bind address to socket!");
-    }
-
     void send(
-        const std::shared_ptr<guppy_msgs::srv::SendCan::Request>&  request,
-        const std::shared_ptr<guppy_msgs::srv::SendCan::Response>& response
+        const std::shared_ptr<const guppy_msgs::srv::SendCan::Request>&  request,
+        const std::shared_ptr<guppy_msgs::srv::SendCan::Response>&       response
     ) {
         can_frame frame{};
-        frame.can_id = request->id, frame.can_dlc = static_cast<__u8>(request->data.size());
-
-        if (frame.can_dlc > 8) {
+        frame.can_id = request->id;
+        auto length = static_cast<__u8>(request->data.size());
+        if (length > 8) {
             RCLCPP_ERROR(this->get_logger(), "CAN payload too large (%zu bytes)", request->data.size());
-            response->written = -1;
+            response->success = false;
             return;
         }
-
-        std::memcpy(frame.data, request->data.data(), frame.can_dlc);
-
-        auto bytes        = write(socket_, &frame, sizeof(frame));
-        response->written = bytes;
-
-        if (bytes < 0) {
+        frame.len = length;
+        std::memcpy(frame.data, request->data.data(), length);
+        size_t bytes_written;
+        if (!socket_.write(&frame, &bytes_written)) {
             RCLCPP_ERROR(this->get_logger(), "Failed to send message over CAN!");
-            response->written = -1;
+            response->success = false;
+            return;
         }
+        response->written = static_cast<uint8_t>(bytes_written);
+        response->success = true;
     }
 };
 

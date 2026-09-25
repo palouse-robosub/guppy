@@ -1,3 +1,3 @@
-string name
-float32 confidence
-geometry_msgs/Pose pose
+string               name
+float32              confidence
+geometry_msgs/Pose   pose

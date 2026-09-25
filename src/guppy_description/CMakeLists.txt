@@ -1,30 +1,28 @@
 cmake_minimum_required(VERSION 3.8)
 project(guppy_description)
 
-if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic)
-endif()
+# dependencies
 
-# find dependencies
 find_package(ament_cmake REQUIRED)
-# uncomment the following section in order to fill in
-# further dependencies manually.
-# find_package(<dependency> REQUIRED)
 
-install(DIRECTORY
-  launch
-  DESTINATION share/${PROJECT_NAME}/
+# installation
+
+install(
+  DIRECTORY launch/
+  DESTINATION share/${PROJECT_NAME}/launch
 )
 
-install(DIRECTORY
-  urdf
-  DESTINATION share/${PROJECT_NAME}/
+install(
+  DIRECTORY urdf/
+  DESTINATION share/${PROJECT_NAME}/urdf
 )
 
-install(DIRECTORY
-  meshes
-  DESTINATION share/${PROJECT_NAME}/
+install(
+  DIRECTORY meshes/
+  DESTINATION share/${PROJECT_NAME}/meshes
 )
+
+# testing
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -37,5 +35,7 @@ if(BUILD_TESTING)
   set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
 endif()
+
+# package
 
 ament_package()

@@ -16,6 +16,7 @@
   <depend>sensor_msgs</depend>
   <depend>nav_msgs</depend>
   <depend>guppy_msgs</depend>
+  <depend>guppy_util</depend>
 
   <exec_depend>ros2launch</exec_depend>
 

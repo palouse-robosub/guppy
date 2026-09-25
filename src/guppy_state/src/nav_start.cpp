@@ -3,25 +3,23 @@
 #include "guppy_msgs/msg/can_frame.hpp"
 #include "guppy_msgs/msg/state.hpp"
 #include "guppy_msgs/srv/change_state.hpp"
+#include "guppy_util/quality.hpp"
 #include "rclcpp/node.hpp"
 #include "rclcpp/executors.hpp"
 
 using namespace std::chrono_literals;
 
 class NavStart : public rclcpp::Node {
-public:
-    static inline const auto reliable_profile = rclcpp::QoS(10).reliable();
-    static inline const auto volatile_profile = rclcpp::QoS(10).best_effort().durability_volatile();
 private:
-    rclcpp::Subscription<guppy_msgs::msg::CanFrame>::SharedPtr nav_switch_sub_;
-    rclcpp::Client<guppy_msgs::srv::ChangeState>::SharedPtr    state_client_;
+    std::shared_ptr<rclcpp::Subscription<guppy_msgs::msg::CanFrame>> nav_switch_sub_;
+    std::shared_ptr<rclcpp::Client<guppy_msgs::srv::ChangeState>>    state_client_;
     bool                                                       was_nav_ = false;
     bool                                                       initialized_ = false;
 public:
     NavStart() : Node("navstart") {
         nav_switch_sub_ = this->create_subscription<guppy_msgs::msg::CanFrame>(
             "/can/id_0x22",
-            reliable_profile,
+            quality::reliable_profile,
             [this](guppy_msgs::msg::CanFrame msg) {
                 this->switch_callback(msg);
             }

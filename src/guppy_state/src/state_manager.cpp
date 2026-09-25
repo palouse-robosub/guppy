@@ -9,13 +9,12 @@
 #include "rclcpp/node.hpp"
 #include "rclcpp/executors.hpp"
 
+#include "guppy_util/quality.hpp"
+
 using namespace std::chrono_literals;
 
 class StateManager : public rclcpp::Node {
 public:
-    static inline const auto keep_last_profile = rclcpp::QoS(10).reliable().transient_local().keep_last(1);
-    static inline const auto reliable_profile = rclcpp::QoS(10).reliable();
-    static inline const auto volatile_profile = rclcpp::QoS(10).best_effort().durability_volatile();
     static inline const geometry_msgs::msg::Twist zero_twist{};
 private:
     uint8_t                                              current_state_;
@@ -44,15 +43,15 @@ public:
 
         this->emergency_stop_sub_ =
             this->create_subscription<guppy_msgs::msg::CanFrame>(
-                "/can/id_0x1b", keep_last_profile,
+                "/can/id_0x1b", quality::keep_last_profile,
                 [this](const guppy_msgs::msg::CanFrame::ConstSharedPtr& msg){
                     this->emergency_stop_callback(*msg);
                 }
             );
-        this->reset_pose_ = this->create_client<std_srvs::srv::Empty>("reset_holding_pose", reliable_profile);
+        this->reset_pose_ = this->create_client<std_srvs::srv::Empty>("reset_holding_pose", quality::reliable_profile);
 
         this->state_pub_ = this->create_publisher<guppy_msgs::msg::State>(
-            "state", keep_last_profile
+            "state", quality::keep_last_profile
         );
 
         this->state_service_ = this->create_service<guppy_msgs::srv::ChangeState>(
@@ -71,28 +70,28 @@ public:
 
         this->nav_sub_ =
             this->create_subscription<geometry_msgs::msg::Twist>(
-                "cmd_vel/nav", volatile_profile,
+                "cmd_vel/nav", quality::volatile_profile,
                 [this](const geometry_msgs::msg::Twist::ConstSharedPtr& msg) {
                     this->nav_twist_ = *msg;
                 }
             );
         this->task_sub_ =
             this->create_subscription<geometry_msgs::msg::Twist>(
-                "cmd_vel/task", volatile_profile,
+                "cmd_vel/task", quality::volatile_profile,
                 [this](const geometry_msgs::msg::Twist::ConstSharedPtr& msg) {
                     this->task_twist_ = *msg;
                 }
             );
         this->teleop_sub_ =
             this->create_subscription<geometry_msgs::msg::Twist>(
-                "cmd_vel/teleop", volatile_profile,
+                "cmd_vel/teleop", quality::volatile_profile,
                 [this](const geometry_msgs::msg::Twist::ConstSharedPtr& msg) {
                     this->teleop_twist_ = *msg;
                 }
             );
 
         this->cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>(
-            "cmd_vel", volatile_profile
+            "cmd_vel", quality::volatile_profile
         );
     }
   private:

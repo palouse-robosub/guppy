@@ -1,7 +1,7 @@
 --- # ryden-format:
 BasedOnStyle: LLVM
+AccessModifierOffset: -4
 AlignAfterOpenBracket: BlockIndent
-AlignArrayOfStructures: Left
 AlignConsecutiveAssignments:
   Enabled: true
   AlignCompound: true
@@ -39,15 +39,16 @@ AllowShortBlocksOnASingleLine: Empty
 AllowShortCaseLabelsOnASingleLine: true
 AllowShortFunctionsOnASingleLine: Empty
 AllowShortLambdasOnASingleLine: Inline
-BracedInitializerIndentWidth: 2
-BreakAfterAttributes: Never
+BracedInitializerIndentWidth: 4
+BreakAfterAttributes: Always
 BreakBeforeBinaryOperators: NonAssignment
 BreakConstructorInitializers: AfterColon
-BreakInheritanceList: AfterColon
+BreakInheritanceList: AfterComma
 BreakStringLiterals: false
 BreakTemplateDeclarations: Yes
-ConstructorInitializerIndentWidth: 2
-Cpp11BracedListStyle: false
+ColumnLimit: 100
+EmptyLineBeforeAccessModifier: Never
+IncludeBlocks: Regroup
 IndentExportBlock: false
 IndentExternBlock: NoIndent
 IndentRequiresClause: false
@@ -58,9 +59,11 @@ KeepEmptyLines:
   AtEndOfFile: true
   AtStartOfBlock: false
   AtStartOfFile: false
+PenaltyExcessCharacter: 50
 PointerAlignment: Left
 QualifierAlignment: Left
 ReferenceAlignment: Left
+ReflowComments: IndentOnly
 RemoveBracesLLVM: true
 RemoveEmptyLinesInUnwrappedLines: true
 RemoveParentheses: ReturnStatement
@@ -73,5 +76,6 @@ SpaceBeforeParensOptions:
 SpaceInEmptyBlock: true
 SpacesBeforeTrailingComments: 4
 TabWidth: 4
-VerilogBreakBetweenInstancePorts: false
 WrapNamespaceBodyWithEmptyLines: Always
+
+# this should be looked at again on widespread release of clang-format 22

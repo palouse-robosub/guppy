@@ -1,9 +1,9 @@
 # constants
-uint8 RESET     = 0
-uint8 GLOBAL    = 1
-uint8 LOCAL     = 2
-uint8 RELATIVE  = 3
+uint8   RESET    = 0
+uint8   GLOBAL   = 1
+uint8   LOCAL    = 2
+uint8   RELATIVE = 3
 
-uint8 type
-geometry_msgs/Pose pose
+uint8                type
+geometry_msgs/Pose   pose
 ---

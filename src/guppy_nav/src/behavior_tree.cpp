@@ -1,112 +1,99 @@
-#include <behaviortree_cpp/tree_node.h>
-#include <behaviortree_ros2/ros_node_params.hpp>
 #include <memory>
 
-#include <guppy_msgs/msg/state.hpp>
-#include <rclcpp/rclcpp.hpp>
-
-#include <rclcpp/qos.hpp>
-#include <rclcpp/rclcpp.hpp>
-
-#include <guppy_nav/acquire_detection.hpp>
-#include <guppy_nav/change_state_behavior.hpp>
-#include <guppy_nav/face_detection_behavior.hpp>
-#include <guppy_nav/pose_setter_behavior.hpp>
-
+#include <behaviortree_cpp/tree_node.h>
+#include <behaviortree_ros2/ros_node_params.hpp>
 #include "behaviortree_cpp/bt_factory.h"
-#include "guppy_msgs/msg/state.hpp"
-#include "guppy_nav/face_detection_behavior.hpp"
 
-#define TICK_MS   20
-#define TREE_NAME "practice-run"
+#include <rclcpp/node.hpp>
+
+#include "guppy_msgs/msg/state.hpp"
+#include "guppy_nav/acquire_detection.hpp"
+#include "guppy_nav/change_state_behavior.hpp"
+#include "guppy_nav/face_detection_behavior.hpp"
+#include "guppy_nav/pose_setter_behavior.hpp"
+#include "guppy_nav/face_detection_behavior.hpp"
+#include "guppy_util/quality.hpp"
 
 class NavigationBehaviorTree : public rclcpp::Node {
-  public:
+public:
+    static constexpr const inline auto tick_ms = 20U;
+private:
+    std::unique_ptr<BT::Tree> tree_;
+    std::unique_ptr<BT::BehaviorTreeFactory> factory_;
+
+    const std::shared_ptr<rclcpp::Node> change_state_client_ = std::make_shared<rclcpp::Node>("chage_state_behavior_client");
+    const std::shared_ptr<rclcpp::Node> navigation_client_ = std::make_shared<rclcpp::Node>("navigate_behavior_client");
+    const std::shared_ptr<rclcpp::Node> detection_subscriber_ = std::make_shared<rclcpp::Node>("detection_subscriber");
+
+    rclcpp::Subscription<guppy_msgs::msg::State>::SharedPtr subscription_;
+    rclcpp::TimerBase::SharedPtr                            timer_;
+
+    bool running_ = false;
+public:
     NavigationBehaviorTree() : Node("navigation_behavior_tree") {
-        BT::BehaviorTreeFactory factory;
-
-        _change_state_client =
-            std::make_shared<rclcpp::Node>("chage_state_behavior_client");
-        _navigation_client =
-            std::make_shared<rclcpp::Node>("navigate_behavior_client");
-        _detection_subscriber =
-            std::make_shared<rclcpp::Node>("detection_subscriber");
-
-        BT::RosNodeParams stateParameters(_change_state_client, "change_state");
-        BT::RosNodeParams navigateParameters(_navigation_client, "/navigate");
-        BT::RosNodeParams detectionParameters(
-            _detection_subscriber, "/cam/test/detections"
+        BT::RosNodeParams state_parameters(this->change_state_client_, "change_state");
+        BT::RosNodeParams navigate_parameters(this->navigation_client_, "/navigate");
+        BT::RosNodeParams detection_parameters(
+            this->detection_subscriber_, "/cam/test/detections"
         );
 
-        factory.registerNodeType<ChangeStateBehavior>(
-            "ChangeState", stateParameters
+        this->factory_->registerNodeType<ChangeStateBehavior>(
+            "ChangeState", state_parameters
         );
-        factory.registerNodeType<NavigateBehavior>(
-            "Navigate", navigateParameters
+        this->factory_->registerNodeType<NavigateBehavior>(
+            "Navigate", navigate_parameters
         );
-        factory.registerNodeType<FaceDetectionBehavior>(
-            "FaceDetection", navigateParameters
+        this->factory_->registerNodeType<FaceDetectionBehavior>(
+            "FaceDetection", navigate_parameters
         );
-        factory.registerNodeType<AcquireDetection>(
-            "AcquireDetection", detectionParameters
+        this->factory_->registerNodeType<AcquireDetection>(
+            "AcquireDetection", detection_parameters
         );
-
-        _tree = std::make_unique<BT::Tree>(factory.createTreeFromFile(
-            "./src/guppy_tasks/resource/" + std::string(TREE_NAME) + ".xml"
-        ));
 
         auto tick = [this]() {
-            if (!_running)
+            if (!this->running_)
                 return;
-            _tree->tickOnce();
+            tree_->tickOnce();
         };
 
-        auto onState = [this](guppy_msgs::msg::State::UniquePtr msg) {
+        auto on_state = [this](std::unique_ptr<const guppy_msgs::msg::State> msg) {
             auto nav = msg->state == guppy_msgs::msg::State::NAV;
-            if (nav && !_running)
-                _running = true;
-            else if (!nav && _running) {
-                _running = false;
-                _tree->haltTree();
+            if (nav && !this->running_)
+                this->running_ = true;
+            else if (!nav && this->running_) {
+                this->running_ = false;
+                this->tree_->haltTree();
             }
         };
 
-        _timer =
-            this->create_wall_timer(std::chrono::milliseconds(TICK_MS), tick);
+        timer_ =this->create_wall_timer(std::chrono::milliseconds(NavigationBehaviorTree::tick_ms), tick);
 
-        auto state_quality =
-            rclcpp::QoS(rclcpp::KeepLast(1))
-                .reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE)
-                .durability(RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL);
-        _subscription = this->create_subscription<guppy_msgs::msg::State>(
-            "state", state_quality, onState
+        this->subscription_ = this->create_subscription<guppy_msgs::msg::State>(
+            "state", quality::keep_last_profile, on_state
+        );
+    }
+private:
+    void initialize_tree() {
+        std::string tree_name;
+        this->declare_parameter("tree_name", "main");
+        this->get_parameter("tree_name", tree_name);
+
+        this->tree_ = std::make_unique<BT::Tree>(
+            this->factory_->createTreeFromFile("./src/guppy_tasks/resource/" + tree_name + ".xml")
         );
 
         RCLCPP_INFO(
-            get_logger(),
+            this->get_logger(),
             "Behavior tree %s initialized with %lu registered nodes.",
-            TREE_NAME, factory.builders().size()
+            tree_name.c_str(), this->factory_->builders().size()
         );
     }
-
-  private:
-    std::unique_ptr<BT::Tree> _tree;
-
-    std::shared_ptr<rclcpp::Node> _change_state_client;
-    std::shared_ptr<rclcpp::Node> _navigation_client;
-    std::shared_ptr<rclcpp::Node> _detection_subscriber;
-
-    rclcpp::Subscription<guppy_msgs::msg::State>::SharedPtr _subscription;
-    rclcpp::TimerBase::SharedPtr                            _timer;
-
-    bool _running = false;
 };
 
 int main(int argc, char* argv[]) {
     rclcpp::init(argc, argv);
-    rclcpp::spin(std::make_shared<NavigationBehaviorTree>());
-
+    const auto behavior_tree_node = std::make_shared<NavigationBehaviorTree>();
+    rclcpp::spin(behavior_tree_node);
     rclcpp::shutdown();
-
     return 0;
 }

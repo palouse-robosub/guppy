@@ -1,50 +1,153 @@
-#include "guppy_control/chassis_controller.hpp"
-#include "guppy_control/t200_interface.hpp"
-#include "guppy_msgs/msg/state.hpp"
-#include "guppy_msgs/srv/set_hold_pose.hpp"
+#include <array>
+#include <unordered_map>
 
-#include "std_msgs/msg/float64.hpp"
-
+#include <std_msgs/msg/float64.hpp>
 #include <rclcpp/executors.hpp>
 #include <rclcpp/node.hpp>
 #include <rclcpp/subscription.hpp>
 #include <rclcpp/parameter_event_handler.hpp>
 
-#include <array>
-#include <unordered_map>
+#include "guppy_control/chassis_controller.hpp"
+#include "guppy_control/t200_interface.hpp"
+#include "guppy_msgs/msg/state.hpp"
+#include "guppy_util/quality.hpp"
+#include "guppy_msgs/srv/set_hold_pose.hpp"
 
 using namespace std::chrono_literals;
-using namespace t200_interface;
-using namespace chassis_controller;
 
 class ControlNode : public rclcpp::Node {
-public:
-    static inline const auto reliable_profile = rclcpp::QoS(10).reliable();
-    static inline const auto volatile_profile = rclcpp::QoS(10).best_effort().durability_volatile();
 private:
-    std::shared_ptr<T200Interface> thruster_interface_;
-    std::unique_ptr<ChassisController> controller_;
+    const std::shared_ptr<rclcpp::ParameterEventHandler>  parameter_sub_;
 
-    std::array<rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr, N_MOTORS> sim_motor_pubs_;
-    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr                   odom_sub_;
-    rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr                 cmd_vel_sub_;
-    rclcpp::Subscription<guppy_msgs::msg::State>::SharedPtr                    state_sub_;
-    rclcpp::TimerBase::SharedPtr                                               timer_;
-    rclcpp::Service<guppy_msgs::srv::SetHoldPose>::SharedPtr                   reset_service_;
+    const std::shared_ptr<T200Interface> thruster_interface_;
+    ChassisController                    controller_;
 
-    std::shared_ptr<rclcpp::ParameterEventHandler>        parameter_sub_;
     std::shared_ptr<rclcpp::ParameterEventCallbackHandle> parameter_event_callback_handle_;
+
+    std::array<std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float64>>, T200Interface::motor_count> sim_motor_pubs_;
+    std::shared_ptr<const rclcpp::Subscription<nav_msgs::msg::Odometry>>             odom_sub_;
+    std::shared_ptr<const rclcpp::Subscription<geometry_msgs::msg::Twist>>           cmd_vel_sub_;
+    std::shared_ptr<const rclcpp::Subscription<guppy_msgs::msg::State>>              state_sub_;
+    std::shared_ptr<rclcpp::Service<guppy_msgs::srv::SetHoldPose>>                   reset_service_;
+
+    std::shared_ptr<const rclcpp::TimerBase> timer_;
+
 public:
-    ControlNode() : Node("control_node") {
-        // declare parameters
+    ControlNode() : Node("control_node"), parameter_sub_(std::make_shared<rclcpp::ParameterEventHandler>(this)),
+        thruster_interface_(
+            std::make_shared<T200Interface>(
+                "can0", std::array<unsigned int, T200Interface::motor_count>{ 0x411, 0x412, 0x413, 0x414, 0x415, 0x416, 0x417, 0x418 }, this->get_logger()
+            )
+        ),
+        controller_(fetch_parameters(), thruster_interface_, 100000) {
+        declare_parameters();
+
+        auto parameter_callback = [this](const rcl_interfaces::msg::ParameterEvent& parameter_event) {
+            if (parameter_event.node != this->get_fully_qualified_name())
+                return;    // quit if for another node
+            auto controller_parameters = this->controller_.get_param_struct();    // get copy of current parameters
+            bool update = false;
+            for (const auto& parameter : parameter_event.changed_parameters) {
+                const auto name = rclcpp::Parameter::from_parameter_msg(parameter).get_name();
+                const auto value = rclcpp::Parameter::from_parameter_msg(parameter);
+                auto it = this->parameter_handlers().find(name);
+                if (it == this->parameter_handlers().end()) {
+                    RCLCPP_INFO(
+                        this->get_logger(),
+                        "No transformer found for parameter '%s', skipping.",
+                        name.c_str()
+                    );
+                    continue;
+                }
+                auto [before, after] = it->second(controller_parameters, value);
+                update = true;
+                RCLCPP_INFO(
+                    this->get_logger(),
+                    "Parameter '%s' changed (%s)->(%s)",
+                    name.c_str(), before.c_str(), after.c_str()
+                );
+            }
+            if (update)    // update if parameters dirty
+                this->controller_.update_parameters(controller_parameters);
+        };
+
+        this->parameter_event_callback_handle_ = this->parameter_sub_->add_parameter_event_callback(parameter_callback);
+
+        // setup motor publishers for sim
+        for (size_t i = 0; i < T200Interface::motor_count; i++) {
+            sim_motor_pubs_[i] =
+                this->create_publisher<std_msgs::msg::Float64>(
+                    "/sim/motor_forces/m_" + std::to_string(i), quality::reliable_profile
+                );
+        }
+
+        // setup subscriptions
+        odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
+            "/odometry/filtered", quality::volatile_profile,
+            [this](const std::shared_ptr<const nav_msgs::msg::Odometry>& msg) {
+                this->controller_.update_current_state(*msg);
+            }
+        );
+
+        cmd_vel_sub_ =
+            this->create_subscription<geometry_msgs::msg::Twist>(
+                "/cmd_vel", quality::volatile_profile,
+                [this](const std::shared_ptr<const geometry_msgs::msg::Twist>& msg) {
+                    this->controller_.update_desired_state(*msg);
+                }
+            );
+
+        state_sub_ = this->create_subscription<guppy_msgs::msg::State>(
+            "/state", quality::volatile_profile,
+            [this](const std::shared_ptr<const guppy_msgs::msg::State>& msg) {
+                this->state_callback(*msg);
+            }
+        );
+
+        reset_service_ = this->create_service<guppy_msgs::srv::SetHoldPose>(
+            "reset_holding_pose",
+            [this](
+                const std::shared_ptr<guppy_msgs::srv::SetHoldPose::Request> request,
+                std::shared_ptr<guppy_msgs::srv::SetHoldPose::Response>
+            ) {
+                this->controller_.reset_holding_pose(request);
+            },
+            quality::reliable_profile
+        );
+
+        timer_ = this->create_wall_timer(
+            10ms,
+            [this]() {
+                auto thrusts = this->controller_.get_motor_thrusts();
+                for (size_t i = 0; i < T200Interface::motor_count; i++) {
+                    std_msgs::msg::Float64 thrust;
+                    thrust.data = static_cast<double>(thrusts[i]);
+                    this->sim_motor_pubs_[i].get()->publish(thrust);
+                }
+            }
+        );
+
+        RCLCPP_INFO(
+            this->get_logger(),
+            "Setup parameters, thrust publishers, and subscribers."
+        );
+
+        bool controller_debug = false;
+        this->declare_parameter("controller_debug", false);
+        this->get_parameter("controller_debug", controller_debug);
+
+        this->controller_.start(controller_debug);
+    }
+private:
+    void declare_parameters() {
         this->declare_parameter<std::vector<double>>(
-            "motor_positions", std::vector<double>(5 * N_MOTORS, 0.0)
+            "motor_positions", std::vector<double>(5 * T200Interface::motor_count, 0.0)
         );    // flattened 6xN
         this->declare_parameter<std::vector<double>>(
-            "motor_lower_bounds", std::vector<double>(N_MOTORS, 0.0)
+            "motor_lower_bounds", std::vector<double>(T200Interface::motor_count, 0.0)
         );
         this->declare_parameter<std::vector<double>>(
-            "motor_upper_bounds", std::vector<double>(N_MOTORS, 0.0)
+            "motor_upper_bounds", std::vector<double>(T200Interface::motor_count, 0.0)
         );
         this->declare_parameter<std::vector<double>>(
             "axis_weight_matrix", std::vector<double>(6 * 6, 0.0)
@@ -80,126 +183,17 @@ public:
             "center_of_buoyancy", std::vector<double>{ 0.0, 0.0, 0.0 }
         );
         this->declare_parameter<double>("qp_epsilon", 0.0);
-
-        ChassisController::Parameters parameters;
-        load_parameters(&parameters);
-
-        this->parameter_sub_ =
-            std::make_shared<rclcpp::ParameterEventHandler>(this);
-
-        auto parameter_callback = [this](const rcl_interfaces::msg::ParameterEvent& parameter_event){
-            if (parameter_event.node != this->get_fully_qualified_name())
-                return;    // quit if for another node
-            auto controller_parameters = this->controller_->get_param_struct();    // get copy of current parameters
-            bool update = false;
-            for (const auto& parameter : parameter_event.changed_parameters) {
-                const auto name = rclcpp::Parameter::from_parameter_msg(parameter).get_name();
-                const auto value = rclcpp::Parameter::from_parameter_msg(parameter);
-                auto it = parameter_handlers().find(name);
-                if (it == parameter_handlers().end()) {
-                    RCLCPP_INFO(
-                        this->get_logger(),
-                        "No transformer found for parameter '%s', skipping.",
-                        name.c_str()
-                    );
-                    continue;
-                }
-                auto [before, after] = it->second(controller_parameters, value);
-                update = true;
-                RCLCPP_INFO(
-                    this->get_logger(),
-                    "Parameter '%s' changed (%s)->(%s)",
-                    name.c_str(), before.c_str(), after.c_str()
-                );
-            }
-            if (update)    // update if parameters dirty
-                this->controller_->update_parameters(controller_parameters);
-        };
-
-        this->parameter_event_callback_handle_ =
-            parameter_sub_->add_parameter_event_callback(parameter_callback);
-
-        thruster_interface_ = std::make_shared<T200Interface>(
-            "can0", std::array<unsigned int, N_MOTORS>{ 0x411, 0x412, 0x413, 0x414, 0x415, 0x416, 0x417, 0x418 }
-        );
-        controller_ = std::make_unique<ChassisController>(parameters, thruster_interface_, 100000);
-
-        // setup motor publishers for sim
-        for (int i = 0; i < N_MOTORS; i++) {
-            sim_motor_pubs_[i] =
-                this->create_publisher<std_msgs::msg::Float64>(
-                    "/sim/motor_forces/m_" + std::to_string(i), reliable_profile
-                );
-        }
-
-        // setup subscriptions
-        odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-            "/odometry/filtered", volatile_profile,
-            [this](const nav_msgs::msg::Odometry::ConstSharedPtr& msg) {
-                controller_->update_current_state(*msg);
-            }
-        );
-
-        cmd_vel_sub_ =
-            this->create_subscription<geometry_msgs::msg::Twist>(
-                "/cmd_vel", volatile_profile,
-                [this](const geometry_msgs::msg::Twist::ConstSharedPtr& msg) {
-                    controller_->update_desired_state(*msg);
-                }
-            );
-
-        state_sub_ = this->create_subscription<guppy_msgs::msg::State>(
-            "/state", volatile_profile,
-            [this](const guppy_msgs::msg::State::ConstSharedPtr& msg) {
-                this->state_callback(*msg);
-            }
-        );
-
-        reset_service_ = this->create_service<guppy_msgs::srv::SetHoldPose>(
-            "reset_holding_pose",
-            [this](
-                const std::shared_ptr<guppy_msgs::srv::SetHoldPose::Request> request,
-                std::shared_ptr<guppy_msgs::srv::SetHoldPose::Response>      response
-            ) {
-                this->controller_->reset_holding_pose(request);
-                (void)response;
-            },
-            reliable_profile
-        );
-
-        timer_ = this->create_wall_timer(
-            10ms,
-            [this] {
-                auto thrusts = this->controller_->get_motor_thrusts();
-                for (int i = 0; i < 8; i++) {
-                    std_msgs::msg::Float64 thrust;
-                    thrust.data = (double)thrusts[i];
-                    this->sim_motor_pubs_[i].get()->publish(thrust);
-                }
-            }
-        );    // publishes sim motor thrust every 10 milliseconds
-
-        RCLCPP_INFO(
-            this->get_logger(),
-            "Setup parameters, thrust publishers, and subscribers."
-        );
-
-        bool controller_debug = false;
-        this->declare_parameter("controller_debug", false);
-        this->get_parameter("controller_debug", controller_debug);
-
-        this->controller_->start(controller_debug);
     }
-private:
+
     void state_callback(const guppy_msgs::msg::State& msg) {
         if (msg.state == guppy_msgs::msg::State::DISABLED)
             this->thruster_interface_->set_enabled(false);
         else
             this->thruster_interface_->set_enabled(true);
         if (msg.state == guppy_msgs::msg::State::NAV)
-            this->controller_->enable_pose_pid(true);
+            this->controller_.enable_pose_pid(true);
         else
-            this->controller_->enable_pose_pid(false);
+            this->controller_.enable_pose_pid(false);
     }
 
     // helper to get motor coefficients from a 5 x N matrix of motor positions
@@ -283,11 +277,11 @@ private:
             "motor_positions",
             &ChassisController::Parameters::motor_coefficients,
             [](const rclcpp::Parameter& parameter) {
-                return to_motor_coefficients<N_MOTORS>(
+                return to_motor_coefficients<T200Interface::motor_count>(
                     parameter.as_double_array()
                 );
             },
-            [](const Eigen::Matrix<double, 6, N_MOTORS>& member) -> std::string {
+            [](const Eigen::Matrix<double, 6, T200Interface::motor_count>& member) -> std::string {
                 return eigen_to_str(member, LineFormat);
             }
         },
@@ -295,9 +289,9 @@ private:
             "motor_lower_bounds",
             &ChassisController::Parameters::motor_lower_bounds,
             [](const rclcpp::Parameter& value) {
-                return to_eigen_vec<N_MOTORS>(value.as_double_array());
+                return to_eigen_vec<T200Interface::motor_count>(value.as_double_array());
             },
-            [](const Eigen::Matrix<double, N_MOTORS, 1>& member) -> std::string {
+            [](const Eigen::Matrix<double, T200Interface::motor_count, 1>& member) -> std::string {
                 return eigen_to_str(member, InlineFormat);
             }
         },
@@ -305,9 +299,9 @@ private:
             "motor_upper_bounds",
             &ChassisController::Parameters::motor_upper_bounds,
             [](const rclcpp::Parameter& parameter) {
-                return to_eigen_vec<N_MOTORS>(parameter.as_double_array());
+                return to_eigen_vec<T200Interface::motor_count>(parameter.as_double_array());
             },
-            [](const Eigen::Matrix<double, N_MOTORS, 1>& member) -> std::string {
+            [](const Eigen::Matrix<double, T200Interface::motor_count, 1>& member) -> std::string {
                 return eigen_to_str(member, InlineFormat);
             }
         },
@@ -481,14 +475,16 @@ private:
         return handlers;
     }
 
-    void load_parameters(ChassisController::Parameters* parameters) {
+    ChassisController::Parameters fetch_parameters() {
+        ChassisController::Parameters parameters;
         for (const auto& [name, handler] : parameter_handlers()) {
             if (!this->has_parameter(name)) {
                 RCLCPP_WARN(this->get_logger(), "Parameter '%s' not set, skipping.", name.c_str());
                 continue;
             }
-            handler(*parameters, this->get_parameter(name));
+            handler(parameters, this->get_parameter(name));
         }
+        return parameters;
     }
 
     /*
@@ -521,7 +517,8 @@ private:
 
 int main(int argc, char* argv[]) {
     rclcpp::init(argc, argv);
-    rclcpp::spin(std::make_shared<ControlNode>());
+    const auto control_node = std::make_shared<ControlNode>();
+    rclcpp::spin(control_node);
     rclcpp::shutdown();
     return 0;
 }
