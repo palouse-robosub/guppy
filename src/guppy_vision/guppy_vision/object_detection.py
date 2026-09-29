@@ -80,10 +80,10 @@ class ObjectDetection(Node):
 
                 corner_list.detections.append(det)
 
-        annotated_image = self.box_annotator.annotate(
-            scene=frame, detections=dets)
+        annotated_image = self.box_annotator.annotate(scene=frame, detections=dets)
         annotated_image = self.label_annotator.annotate(
-            scene=annotated_image, detections=dets)
+            scene=annotated_image, detections=dets
+        )
 
         corner_list.header = msg.header
         self.pub.publish(corner_list)
