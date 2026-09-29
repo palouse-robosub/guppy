@@ -10,6 +10,7 @@ from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import Image
 from ultralytics import YOLO
+import supervision as sv
 from vision_msgs.msg import Point2D
 
 from guppy_msgs.msg import CornerDetection, CornerDetectionList
@@ -24,15 +25,22 @@ class ObjectDetection(Node):
         self.bridge = CvBridge()
 
         self.sub = self.create_subscription(
-            Image, "cam/test", self.callback, qos_profile_sensor_data
+            Image, "/cam/test", self.callback, qos_profile_sensor_data
         )
         self.pub = self.create_publisher(
             CornerDetectionList, "/cam/test/detections", 10
         )
+        self.anno_pub = self.create_publisher(
+            Image, "/cam/test/anno", qos_profile_sensor_data
+        )
+
+        self.box_annotator = sv.BoxAnnotator()
+        self.label_annotator = sv.LabelAnnotator()
 
     def callback(self, msg):
         frame = self.bridge.imgmsg_to_cv2(msg)
         results = self.model(frame)
+        dets = sv.Detections.from_ultralytics(results[0])
 
         corner_list = CornerDetectionList()
 
@@ -72,8 +80,15 @@ class ObjectDetection(Node):
 
                 corner_list.detections.append(det)
 
+        annotated_image = self.box_annotator.annotate(
+            scene=frame, detections=dets)
+        annotated_image = self.label_annotator.annotate(
+            scene=annotated_image, detections=dets)
+
         corner_list.header = msg.header
         self.pub.publish(corner_list)
+
+        self.anno_pub.publish(self.bridge.cv2_to_imgmsg(annotated_image))
 
 
 def main(args=None):
