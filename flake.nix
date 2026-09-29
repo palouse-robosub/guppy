@@ -71,6 +71,9 @@
                 
                 # rviz
                 rviz2
+
+                # foxglove
+                foxglove-bridge
                 
                 # deps
                 ros2-control
