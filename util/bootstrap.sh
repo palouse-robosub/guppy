@@ -29,6 +29,7 @@ sudo apt install -y \
     ros-jazzy-control-toolbox \
     ros-jazzy-proxsuite \
     ros-jazzy-marine-acoustic-msgs \
+    ros-jazzy-foxglove-bridge \
     python3-colcon-common-extensions \
     python3-evdev \
     python3-rosdep \

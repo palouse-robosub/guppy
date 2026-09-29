@@ -12,4 +12,7 @@
     <include file="$(find-pkg-share guppy_state)/launch/core.xml" />
     <include file="$(find-pkg-share guppy_vision)/launch/core.xml" />
     <include file="$(find-pkg-share guppy_nav)/launch/core.xml" />
+
+    <!-- for visualization with foxglove studio -->
+    <include file="$(find-pkg-share foxglove_bridge)/launch/foxglove_bridge_launch.xml" />
 </launch>
