@@ -1,6 +1,5 @@
 <launch>
     <node pkg="guppy_vision" exec="webcam_pub"/>
-    <node pkg="guppy_vision" exec="camera_pub"/>
     <node pkg="guppy_vision" exec="pnp"/>
     <node pkg="guppy_vision" exec="slam"/>
     <node pkg="guppy_vision" exec="aprilrepub"/>
