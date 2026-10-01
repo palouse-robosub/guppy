@@ -61,7 +61,10 @@ class FaceDetectionBehavior :
 
         getInput("timeout", goal.timeout);
 
-        RCLCPP_INFO(this->logger(), "Updated goal to face detection %s", detection.name.c_str());
+        RCLCPP_INFO(
+            this->logger(), "Updated goal to face detection %s",
+            detection.name.c_str()
+        );
         return true;
     }
 
