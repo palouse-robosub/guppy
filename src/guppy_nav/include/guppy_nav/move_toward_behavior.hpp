@@ -30,12 +30,18 @@ class MoveTowardBehavior :
     bool setGoal(
         BT::RosActionNode<guppy_msgs::action::Navigate>::Goal& goal
     ) override {
-        RCLCPP_INFO(logger(), "made it to move toward start");
         guppy_msgs::msg::CornerDetection detection;
         getInput("detection", detection);
+        RCLCPP_INFO(
+            logger(), "Beginning move towards calculation to approach %s",
+            detection.name.c_str()
+        );
 
         if (detection.corners.size() < 2)
-            return false;
+            RCLCPP_ERROR(
+                this->logger(), "Detection has invalid amount of corners"
+            );
+        return false;
 
         double diagonal_size = 0.0;
         for (int i = 0; i < detection.corners.size(); i++) {
@@ -52,7 +58,8 @@ class MoveTowardBehavior :
             }
         }
         if (diagonal_size == 0.0)
-            return false;
+            RCLCPP_ERROR(this->logger(), "Detection has invalid diagonal size");
+        return false;
 
         constexpr double maintain_distance = 0.25;    // arbitrary value
         constexpr double scale = 0.1;    // scaling from pixel units to meters
@@ -82,7 +89,9 @@ class MoveTowardBehavior :
 
         getInput("timeout", goal.timeout);
 
-        RCLCPP_INFO(logger(), "passed move");
+        RCLCPP_INFO(
+            logger(), "Updated goal to move towards %s", detection.name.c_str()
+        );
 
         return true;
     }

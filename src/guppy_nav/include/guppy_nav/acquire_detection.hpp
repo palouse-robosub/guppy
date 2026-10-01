@@ -46,6 +46,8 @@ class AcquireDetection :
 
         setOutput("detection", *it);
 
+        RCLCPP_INFO(this->logger(), "Acquired detection: %s", target.c_str());
+
         return BT::NodeStatus::SUCCESS;
     }
 

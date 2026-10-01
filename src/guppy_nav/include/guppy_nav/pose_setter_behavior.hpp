@@ -37,6 +37,8 @@ class NavigateBehavior :
         getInput("qz", goal.pose.orientation.z);
         getInput("local", goal.local);
         getInput("timeout", goal.timeout);
+
+        RCLCPP_INFO(this->logger(), "Updated pose setter goal directly");
         return true;
     }
 
