@@ -22,25 +22,6 @@ find_package(tf2_geometry_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(image_transport REQUIRED)
 
-# Spinnaker paths
-set(SPINNAKER_INCLUDE_DIR /opt/spinnaker/include)
-set(SPINNAKER_LIBRARY /opt/spinnaker/lib/libSpinnaker.so)
-
-# Create imported library target
-add_library(Spinnaker::Spinnaker SHARED IMPORTED)
-
-set_target_properties(Spinnaker::Spinnaker PROPERTIES
-        IMPORTED_LOCATION ${SPINNAKER_LIBRARY}
-        INTERFACE_INCLUDE_DIRECTORIES ${SPINNAKER_INCLUDE_DIR}
-)
-
-add_executable(camera_pub src/camera_pub.cpp)
-ament_target_dependencies(camera_pub rclcpp sensor_msgs image_transport)
-
-target_link_libraries(camera_pub
-        Spinnaker::Spinnaker
-)
-
 add_executable(webcam_pub src/webcam_pub.cpp)
 add_executable(pnp src/pnp.cpp)
 add_executable(slam src/slam.cpp)
@@ -56,7 +37,6 @@ install(TARGETS
   aprilrepub
   pnp
   slam
-  camera_pub
   
   DESTINATION lib/${PROJECT_NAME})
 
