@@ -60,6 +60,11 @@ class FaceDetectionBehavior :
         goal.local = true;    // local to cameras so has to be local
 
         getInput("timeout", goal.timeout);
+
+        RCLCPP_INFO(
+            this->logger(), "Updated goal to face detection %s",
+            detection.name.c_str()
+        );
         return true;
     }
 

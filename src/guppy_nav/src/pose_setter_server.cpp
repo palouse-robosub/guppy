@@ -176,12 +176,30 @@ class PoseSetterServer : public rclcpp::Node {
             _end_quat = _current_quat * _end_quat;
         }
 
+        RCLCPP_INFO(
+            this->get_logger(),
+            "Beginning execution of goal navigate to: (%.2f, %.2f, %.2f) (global coords)",
+            _end_pos.x(), _end_pos.y(), _end_pos.z()
+        );
+
         Eigen::Vector3d    _start_pos  = _current_pos;
         Eigen::Quaterniond _start_quat = _current_quat;
 
         Eigen::Vector3d dist_vector = _end_pos - _start_pos;
 
+        RCLCPP_INFO(
+            this->get_logger(), "Distance to target: x: %.2f, y: %.2f, z: %.2f",
+            dist_vector.x(), dist_vector.y(), dist_vector.z()
+        );
+
         double total_distance = dist_vector.norm();
+
+        RCLCPP_INFO(
+            this->get_logger(),
+            "Total distance to target: %.2f m, Timeout: %.2f s, Min avg speed: %.2f m/s",
+            total_distance, goal->timeout,
+            total_distance / (double)goal->timeout
+        );
 
         int n_steps = (total_distance / SETPOINTS_EVERY) + 1;
         std::vector<Eigen::Vector3d>    pos_list;
@@ -216,6 +234,14 @@ class PoseSetterServer : public rclcpp::Node {
         while (rclcpp::ok()) {
             if (_cancel || goalHandle->is_canceling()
                 || _state != guppy_msgs::msg::State::NAV) {
+                if (_state != guppy_msgs::msg::State::NAV) {
+                    RCLCPP_INFO(
+                        this->get_logger(),
+                        "Goal canceled due to exiting nav state"
+                    );
+                } else {
+                    RCLCPP_INFO(this->get_logger(), "Goal canceled");
+                }
                 result->pose           = get_current_pose();
                 result->target_reached = false;
                 goalHandle->canceled(result);
@@ -235,11 +261,26 @@ class PoseSetterServer : public rclcpp::Node {
                 && abs(error.z()) <= tolerance_list[setpoint_index]
                 && abs(qangle) <= M_PI / 36    // 10 degrees
             ) {
+                RCLCPP_INFO(
+                    this->get_logger(),
+                    "Reached setpoint %d / %d, continuing to next setpoint.",
+                    setpoint_index, n_steps
+                );
                 setpoint_index++;
                 if (setpoint_index == n_steps)
                     break;
                 set_to(pos_list[setpoint_index], quat_list[setpoint_index]);
             } else if ((clock->now() - start).seconds() >= goal->timeout) {
+                RCLCPP_INFO(
+                    this->get_logger(),
+                    "Current goal timed out. Elapsed: %.2f / Timeout: %.2f",
+                    (clock->now() - start).seconds(), goal->timeout
+                );
+                RCLCPP_INFO(
+                    this->get_logger(),
+                    "Error remaning at timeout: x: %.2f, y: %.2f, z: %.2f",
+                    error.x(), error.y(), error.z()
+                );
                 result->pose           = get_current_pose();
                 result->error          = pose_from_vec_quat(error, qerror);
                 result->target_reached = false;
@@ -250,6 +291,15 @@ class PoseSetterServer : public rclcpp::Node {
             feedback->progress = get_current_pose();
             feedback->percent_done =
                 ((double)setpoint_index) / ((double)n_steps);
+            RCLCPP_DEBUG(
+                this->get_logger(), "Current pose: x: %.2f, y: %.2f, z: %.2f",
+                feedback->progress.position.x, feedback->progress.position.y,
+                feedback->progress.position.z
+            );
+            RCLCPP_DEBUG(
+                this->get_logger(), "Percent done: %.2f%%",
+                ((double)setpoint_index) / ((double)n_steps)
+            );
             goalHandle->publish_feedback(feedback);
             rate.sleep();
         }
@@ -258,6 +308,11 @@ class PoseSetterServer : public rclcpp::Node {
             result->pose           = get_current_pose();
             result->target_reached = true;
             result->error          = pose_from_vec_quat(error, qerror);
+            RCLCPP_INFO(
+                this->get_logger(),
+                "Goal succeeded with error: x: %.2f, y: %.2f, z: %.2f",
+                error.x(), error.y(), error.z()
+            );
             goalHandle->succeed(result);
             return;
         }

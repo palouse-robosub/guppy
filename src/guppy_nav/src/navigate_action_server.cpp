@@ -392,6 +392,8 @@ class NavigateActionServer : public rclcpp::Node {
                 result->target_reached = false;
                 goalHandle->canceled(result);
 
+                RCLCPP_WARN(this->get_logger(), "Current goal canceled")
+
                 geometry_msgs::msg::Twist zeroTwist;    // publish zero twist
                 _commandVelocityPublisher->publish(zeroTwist);
 
@@ -421,8 +423,14 @@ class NavigateActionServer : public rclcpp::Node {
             _commandVelocityPublisher->publish(commandVelocity);
             goalHandle->publish_feedback(feedback);
 
-            if (elapsed >= goal->timeout)
+            if (elapsed >= goal->timeout) {
+                RCLCPP_WARN(
+                    this->get_logger(),
+                    "Current goal timed out (Elapsed: %.2f / Timeout: %.2f), continuing...",
+                    elapsed, goal->timeout
+                );
                 break;
+            }
 
             rate.sleep();
         }
@@ -437,8 +445,9 @@ class NavigateActionServer : public rclcpp::Node {
 
             goalHandle->succeed(result);
 
-            RCLCPP_INFO(this->get_logger(), "goal succeeded");
+            RCLCPP_INFO(this->get_logger(), "Goal succeeded");
         }
+        RCLCPP_INFO(this->get_logger(), "Finished navigate action execution.")
     }
 };
 
