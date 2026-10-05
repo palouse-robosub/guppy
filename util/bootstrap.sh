@@ -34,7 +34,8 @@ sudo apt install -y \
     python3-evdev \
     python3-rosdep \
     python3-pygame \
-    nlohmann-json3-dev
+    nlohmann-json3-dev \
+    ninja
 
 sudo python3 -m pip install PySide6 --break-system-packages
 

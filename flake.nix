@@ -20,6 +20,7 @@
             pkgs.colcon
             pkgs.cmake
             pkgs.clang-tools
+            pkgs.ninja
             
             # deps
             pkgs.proxsuite
