@@ -49,6 +49,6 @@ control_chassis:
     drag_areas: [ 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 ]
     water_density: 1000.0 # kg/m^3
     robot_volume: 0.03963 # m^3
-    robot_mass: 33.5 # kg
+    robot_mass: 34.0 # kg
     center_of_buoyancy: [ 0.0, 0.0, 0.0 ]
     qp_epsilon: 0.001
