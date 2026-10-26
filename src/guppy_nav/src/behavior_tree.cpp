@@ -11,9 +11,11 @@
 #include <memory>
 #include <rclcpp/node.hpp>
 
+using namespace std::chrono_literals;
+
 class NavigationBehaviorTree : public rclcpp::Node {
 public:
-    static constexpr const inline auto tick_ms = 20U;
+    static constexpr const inline auto tick_ms = 20ms;
 private:
     std::unique_ptr<BT::Tree>                tree_;
     std::unique_ptr<BT::BehaviorTreeFactory> factory_;
@@ -59,7 +61,7 @@ public:
         };
 
         timer_ = this->create_wall_timer(
-            std::chrono::milliseconds(NavigationBehaviorTree::tick_ms), tick
+            NavigationBehaviorTree::tick_ms, tick
         );
 
         this->subscription_ = this->create_subscription<guppy_msgs::msg::State>(

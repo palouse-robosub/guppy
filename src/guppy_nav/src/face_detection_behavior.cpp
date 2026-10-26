@@ -1,4 +1,5 @@
 #include "guppy_nav/face_detection_behavior.hpp"
+#include "guppy_msgs/msg/corner_detection.hpp"
 
 // public methods
 FaceDetectionBehavior::FaceDetectionBehavior(
@@ -7,8 +8,10 @@ FaceDetectionBehavior::FaceDetectionBehavior(
 
 BT::PortsList FaceDetectionBehavior::providedPorts() {
     return providedBasicPorts(
-        {BT::InputPort<double>("detection"), BT::InputPort<double>("timeout"),
-         BT::InputPort<bool>("continueOnTimeout")}
+        {
+            BT::InputPort<guppy_msgs::msg::CornerDetection>("detection"), BT::InputPort<double>("timeout"),
+            BT::InputPort<bool>("continueOnTimeout")
+        }
     );
 }
 
@@ -24,9 +27,9 @@ bool FaceDetectionBehavior::setGoal(BT::RosActionNode<guppy_msgs::action::Naviga
     x /= size, y /= size;
 
     auto roll  = 0.0,
-         pitch = FaceDetectionBehavior::camera_max_angle_pitch
+        pitch = FaceDetectionBehavior::camera_max_angle_pitch
                * (y / FaceDetectionBehavior::camera_resolution_y),
-         yaw = FaceDetectionBehavior::camera_max_angle_yaw
+        yaw = FaceDetectionBehavior::camera_max_angle_yaw
              * (x / FaceDetectionBehavior::camera_resolution_x);
     Eigen::Quaterniond q = Eigen::AngleAxisd(roll, Eigen::Vector3d::UnitX())
                          * Eigen::AngleAxisd(pitch, Eigen::Vector3d::UnitY())

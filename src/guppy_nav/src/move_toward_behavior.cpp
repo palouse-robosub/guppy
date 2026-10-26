@@ -7,8 +7,8 @@
 
 // public methods
 MoveTowardBehavior::MoveTowardBehavior(
-    const std::string& name, const BT::NodeConfig& conf, const BT::RosNodeParams& params
-) : BT::RosActionNode<guppy_msgs::action::Navigate>(name, conf, params) { }
+    const std::string& name, const BT::NodeConfig& config, const BT::RosNodeParams& parameters
+) : BT::RosActionNode<guppy_msgs::action::Navigate>(name, config, parameters) { }
 
 BT::PortsList MoveTowardBehavior::providedPorts() {
     return providedBasicPorts(
