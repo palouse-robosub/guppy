@@ -1,0 +1,2 @@
+#!/bin/bash
+find src | grep -E '\.(cpp|hpp|c|h|cc|cxx|hh)$' | xargs clang-format -i -style=file
