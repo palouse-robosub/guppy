@@ -26,7 +26,7 @@ control_chassis:
     pid_gains_vel_angular: [ 10000.0, 0.0, 0.0 ]
 
     pid_gains_pose_linear: [ 300.0, 0.0, 12.0 ]
-    pid_gains_pose_angular: [ 30.0, 0.0, 10.0 ]
+    pid_gains_pose_angular: [ 30.0, 0.0, 5.0 ]
 
     # pid_gains_vel_linear: [ 0.0, 0.0, 0.0 ]
     # pid_gains_vel_angular: [ 0.0, 0.0, 0.0 ]
