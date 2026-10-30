@@ -22,14 +22,4 @@ self.COMMAND_MAP: dict[Callable, list[int]] = {
     lambda: self.handler.push_state("FAULT"): [ecodes.BTN_SELECT, ecodes.BTN_B]
     ...
 }
-``` 
-
-### Terminal GUI
-
-Start the GUI Terminal using `ros2 run guppy_teleop terminal`, this will also start the input service. A panel on the left allows you to switch workspaces, all of which are defined in the `guppy_teleop/frontend/workspaces`. Widgets can be dragged, scaled, and removed. In the bottom right, there are buttons that toggle snapping to the grid, moving to the origin, and saving/loading workspaces.
-
-#### Adding New Widgets or Services
-
-TODO
-
-<sub>Toasts from [QtToastify](https://github.com/mastercomdev/QtToastify) (Toastify.qml, ToastifyDelegate.qml)</sub>
+```
