@@ -28,7 +28,6 @@
             (pkgs.python3.withPackages (ps: with ps; [
               pygame
               pip
-              pyside6
               evdev
             ]))
 

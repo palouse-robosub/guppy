@@ -36,8 +36,6 @@ sudo apt install -y \
     python3-pygame \
     nlohmann-json3-dev
 
-sudo python3 -m pip install PySide6 --break-system-packages
-
 echo "source /opt/ros/jazzy/setup.bash" >> ~/.bashrc
 
 sudo apt install -y git neovim python3-pip terminator
