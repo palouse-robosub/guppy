@@ -1,0 +1,11 @@
+[Unit]
+Description=Sets up can interface can0
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/etc/setup_can.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

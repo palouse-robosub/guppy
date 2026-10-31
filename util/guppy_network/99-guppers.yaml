@@ -1,0 +1,15 @@
+network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    enp1s0:
+      dhcp4: false
+    enp2s0:
+      dhcp4: false
+  bridges:
+    br0:
+      addresses:
+      - "192.168.194.1/24"
+      interfaces:
+      - enp1s0
+      - enp2s0

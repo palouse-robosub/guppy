@@ -1,0 +1,14 @@
+[Unit]
+Description=Launches guppy
+After=guppy_can.service
+
+[Service]
+Type=simple
+User=robosub
+ExecStart=/usr/bin/bash /home/robosub/guppy/startup/setup.sh
+StandardOutput=journal
+StandardError=journal
+RemainAfterExit=no
+
+[Install]
+WantedBy=multi-user.target

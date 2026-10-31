@@ -1,0 +1,21 @@
+network:
+  version: 2
+  ethernets:
+    NM-ad7418fe-c621-37e4-855c-40e4bc8c4388:
+      renderer: NetworkManager
+      match:
+        name: "enp1s0"
+      dhcp6: true
+      wakeonlan: true
+      networkmanager:
+        uuid: "ad7418fe-c621-37e4-855c-40e4bc8c4388"
+        name: "Wired connection 1"
+        passthrough:
+          connection.autoconnect-priority: "-999"
+          connection.timestamp: "1774332581"
+          ethernet._: ""
+          ipv4.address1: "192.168.194.1/24"
+          ipv4.method: "shared"
+          ipv6.addr-gen-mode: "default"
+          ipv6.ip6-privacy: "-1"
+          proxy._: ""
