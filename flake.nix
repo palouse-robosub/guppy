@@ -30,6 +30,8 @@
               pip
               pyside6
               evdev
+              supervision
+              ultralytics
             ]))
 
             # extra
@@ -75,6 +77,11 @@
 
                 # foxglove
                 foxglove-bridge
+
+                # bagging
+                rosbag2
+                rosbag2-compression
+                rosbag2-py
                 
                 # deps
                 ros2-control
