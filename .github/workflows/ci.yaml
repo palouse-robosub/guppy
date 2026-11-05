@@ -121,6 +121,12 @@ jobs:
       - name: Check Nix Flake
         uses: DeterminateSystems/flake-checker-action@main
 
+      - name: Generate Vendor Cache Key
+        id: vendor-key
+        run: |
+          HASH=$(git submodule status --recursive | sha256sum | cut -d ' ' -f 1)
+          echo "hash=$HASH" >> "$GITHUB_OUTPUT"
+
       - name: Restore Vendor
         id: cache-vendor-restore
         uses: actions/cache/restore@v6
@@ -140,7 +146,7 @@ jobs:
             install/vectornav/
             install/vectornav_msgs/
             install/waterlinked_dvl_driver/
-          key: ${{ runner.os }}-vendor-${{ hashFiles('flake.lock', 'flake.nix', 'vendor/**') }}
+          key: ${{ runner.os }}-vendor-${{ steps.vendor-key.outputs.hash }}
       
       - name: Debug Cache Restore
         continue-on-error: true
@@ -169,7 +175,7 @@ jobs:
             install/vectornav_msgs/
             install/waterlinked_dvl_driver/
             
-          key: ${{ runner.os }}-vendor-${{ hashFiles('flake.lock', 'flake.nix', 'vendor/**') }}
+          key: ${{ runner.os }}-vendor-${{ steps.vendor-key.outputs.hash }}
 
       - name: C/C++ Lint
         uses: cpp-linter/cpp-linter-action@v2
