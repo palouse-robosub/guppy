@@ -147,7 +147,7 @@ jobs:
         run: find build
 
       - name: Build and run tests
-        run: nix develop --accept-flake-config --command bash -c "./.github/workflows/diff_and_build.sh"
+        run: nix develop --accept-flake-config --command bash -c "colcon build"
 
       - name: Save Vendor
         id: cache-vendor-save
