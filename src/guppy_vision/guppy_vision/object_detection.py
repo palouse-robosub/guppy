@@ -3,14 +3,14 @@
 import json as jsonlib
 
 import cv2 as cv
-import rclpy
 import numpy as np
+import rclpy
 import supervision as sv
 from cv_bridge import CvBridge
 from geometry_msgs.msg import Point
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
-from sensor_msgs.msg import Image, CompressedImage
+from sensor_msgs.msg import CompressedImage, Image
 from ultralytics import YOLO
 from vision_msgs.msg import Point2D
 
@@ -22,11 +22,16 @@ class ObjectDetection(Node):
         super().__init__("object_detection")
 
         # Model generously provided by OSU-UWRT
-        self.model = YOLO("/home/andy/code/guppy/src/guppy_vision/resource/ffc_rs_26.pt")
+        self.model = YOLO(
+            "/home/andy/code/guppy/src/guppy_vision/resource/ffc_rs_26.pt"
+        )
         self.bridge = CvBridge()
 
         self.sub = self.create_subscription(
-            CompressedImage, "/cam/test/compressed", self.callback, qos_profile_sensor_data
+            CompressedImage,
+            "/cam/test/compressed",
+            self.callback,
+            qos_profile_sensor_data,
         )
         self.pub = self.create_publisher(
             CornerDetectionList, "/cam/test/detections", 10
@@ -41,7 +46,7 @@ class ObjectDetection(Node):
     def callback(self, msg):
         np_arr = np.frombuffer(msg.data, np.uint8)
         frame = cv.imdecode(np_arr, cv.IMREAD_COLOR)
-        results = self.model(frame)
+        results = self.model(frame, verbose=False)
 
         corner_list = CornerDetectionList()
 
@@ -61,9 +66,7 @@ class ObjectDetection(Node):
                 off_x = int(w * 0.3)
                 off_y = int(h * 0.3)
 
-                off = max(
-                    off_x, off_y
-                )  # grab highest for detections not close to 1:1
+                off = max(off_x, off_y)  # grab highest for detections not close to 1:1
 
                 # clamp to frame
                 y1_bound = max(0, y1 - off)
@@ -79,9 +82,7 @@ class ObjectDetection(Node):
                 blur = cv.GaussianBlur(gray, (5, 5), 0)
 
                 # threshold
-                _, mask = cv.threshold(
-                    blur, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU
-                )
+                _, mask = cv.threshold(blur, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU)
 
                 # outlines of white sections
                 cnts, _ = cv.findContours(
@@ -94,12 +95,13 @@ class ObjectDetection(Node):
 
                 # reduce to 4 points
                 approx = cv.approxPolyDP(c, 0.04 * peri, True)
-                if len(approx) < 4: continue
+                if len(approx) < 4:
+                    continue
                 nsides = cv.approxPolyN(approx, 4)
 
                 cntOffset = nsides + (x1_bound, y1_bound)
 
-                for x, y in nsides.reshape(-1, 2):
+                for x, y in nsides.reshape(-1, 2).tolist():
                     point = Point2D()
                     point.x = float(x)
                     point.y = float(y)
@@ -136,12 +138,9 @@ class ObjectDetection(Node):
 
                 corner_list.detections.append(newDet)
 
-
             dets = sv.Detections.from_ultralytics(results[0])
             frame = self.box_annotator.annotate(scene=frame, detections=dets)
-            frame = self.label_annotator.annotate(
-                scene=frame, detections=dets
-            )
+            frame = self.label_annotator.annotate(scene=frame, detections=dets)
 
         corner_list.header = msg.header
         self.pub.publish(corner_list)
