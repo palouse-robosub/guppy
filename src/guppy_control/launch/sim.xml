@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
     <arg name="controller_debug" default="false" />
-    <!-- to launch with controller debugging enabled use 'ros2 launch guppy_control sim.xml controller_debug:=true' -->
+    <!-- to launch with controller debugging enabled use 'ros2 launch guppy_control core.xml controller_debug:=true' -->
 
-    <include file="$(find-pkg-share guppy_control)/launch/core.xml">
-        <arg name="controller_debug" value="$(var controller_debug)" />
-    </include>
+    <node pkg="guppy_control" exec="control_chassis" output="screen">
+        <param name="controller_debug" value="$(var controller_debug)"/>
+        <param from="$(find-pkg-share guppy_control)/config/sim.yaml" />
+    </node>
 </launch>

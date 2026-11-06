@@ -5,6 +5,6 @@
 
     <node pkg="guppy_control" exec="control_chassis" output="screen">
         <param name="controller_debug" value="$(var controller_debug)"/>
-        <param from="$(find-pkg-share guppy_control)/config/controller_params.yaml" />
+        <param from="$(find-pkg-share guppy_control)/config/gibb_pool.yaml" />
     </node>
 </launch>
