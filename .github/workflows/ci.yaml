@@ -134,6 +134,10 @@ jobs:
           path: |
             build/behaviortree_cpp/
             build/behaviortree_ros2/
+            build/btcpp_ros2_interfaces/
+            build/btcpp_ros2_samples/
+            build/gncea_autonomy/
+            build/gncea_description/
             build/libwaterlinked/
             build/nlohmann_json/
             build/vectornav/
@@ -141,6 +145,10 @@ jobs:
             build/waterlinked_dvl_driver/
             install/behaviortree_cpp/
             install/behaviortree_ros2/
+            install/btcpp_ros2_interfaces/
+            install/btcpp_ros2_samples/
+            install/gncea_autonomy/
+            install/gncea_description/
             install/libwaterlinked/
             install/nlohmann_json/
             install/vectornav/
@@ -162,6 +170,10 @@ jobs:
           path: |
             build/behaviortree_cpp/
             build/behaviortree_ros2/
+            build/btcpp_ros2_interfaces/
+            build/btcpp_ros2_samples/
+            build/gncea_autonomy/
+            build/gncea_description/
             build/libwaterlinked/
             build/nlohmann_json/
             build/vectornav/
@@ -169,6 +181,10 @@ jobs:
             build/waterlinked_dvl_driver/
             install/behaviortree_cpp/
             install/behaviortree_ros2/
+            install/btcpp_ros2_interfaces/
+            install/btcpp_ros2_samples/
+            install/gncea_autonomy/
+            install/gncea_description/
             install/libwaterlinked/
             install/nlohmann_json/
             install/vectornav/
