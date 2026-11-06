@@ -121,6 +121,12 @@ jobs:
       - name: Check Nix Flake
         uses: DeterminateSystems/flake-checker-action@main
 
+      - name: Generate Vendor Cache Key
+        id: vendor-key
+        run: |
+          HASH=$(git submodule status --recursive | sha256sum | cut -d ' ' -f 1)
+          echo "hash=$HASH" >> "$GITHUB_OUTPUT"
+
       - name: Restore Vendor
         id: cache-vendor-restore
         uses: actions/cache/restore@v6
@@ -128,6 +134,10 @@ jobs:
           path: |
             build/behaviortree_cpp/
             build/behaviortree_ros2/
+            build/btcpp_ros2_interfaces/
+            build/btcpp_ros2_samples/
+            build/gncea_autonomy/
+            build/gncea_description/
             build/libwaterlinked/
             build/nlohmann_json/
             build/vectornav/
@@ -135,19 +145,23 @@ jobs:
             build/waterlinked_dvl_driver/
             install/behaviortree_cpp/
             install/behaviortree_ros2/
+            install/btcpp_ros2_interfaces/
+            install/btcpp_ros2_samples/
+            install/gncea_autonomy/
+            install/gncea_description/
             install/libwaterlinked/
             install/nlohmann_json/
             install/vectornav/
             install/vectornav_msgs/
             install/waterlinked_dvl_driver/
-          key: ${{ runner.os }}-vendor-${{ hashFiles('flake.lock', 'flake.nix', 'vendor/**') }}
+          key: ${{ runner.os }}-vendor-${{ steps.vendor-key.outputs.hash }}
       
       - name: Debug Cache Restore
         continue-on-error: true
         run: find build
 
       - name: Build and run tests
-        run: nix develop --accept-flake-config --command bash -c "./.github/workflows/diff_and_build.sh"
+        run: nix develop --accept-flake-config --command bash -c "colcon build"
 
       - name: Save Vendor
         id: cache-vendor-save
@@ -156,6 +170,10 @@ jobs:
           path: |
             build/behaviortree_cpp/
             build/behaviortree_ros2/
+            build/btcpp_ros2_interfaces/
+            build/btcpp_ros2_samples/
+            build/gncea_autonomy/
+            build/gncea_description/
             build/libwaterlinked/
             build/nlohmann_json/
             build/vectornav/
@@ -163,13 +181,17 @@ jobs:
             build/waterlinked_dvl_driver/
             install/behaviortree_cpp/
             install/behaviortree_ros2/
+            install/btcpp_ros2_interfaces/
+            install/btcpp_ros2_samples/
+            install/gncea_autonomy/
+            install/gncea_description/
             install/libwaterlinked/
             install/nlohmann_json/
             install/vectornav/
             install/vectornav_msgs/
             install/waterlinked_dvl_driver/
             
-          key: ${{ runner.os }}-vendor-${{ hashFiles('flake.lock', 'flake.nix', 'vendor/**') }}
+          key: ${{ runner.os }}-vendor-${{ steps.vendor-key.outputs.hash }}
 
       - name: C/C++ Lint
         uses: cpp-linter/cpp-linter-action@v2
