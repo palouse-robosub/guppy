@@ -1,7 +1,6 @@
 <launch>
     <node pkg="guppy_vision" exec="usb_camera_publisher">
-        <param name="camera_index" value="0"/>
-        <param name="topic_name" value="test"/>
+        <param from="$(find-pkg-share guppy_vision)/calib/framework13.yaml" />
     </node>
     <node pkg="guppy_vision" exec="pnp"/>
     <node pkg="guppy_vision" exec="slam"/>

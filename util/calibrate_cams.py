@@ -5,15 +5,21 @@ import numpy as np
 import sys
 import time
 import yaml
+import datetime
 
 os.environ["OPENCV_LOG_LEVEL"] = "OFF"
 os.environ["OPENCV_FFMPEG_LOGLEVEL"] = "-8"
 
-if len(sys.argv) == 1:
-    print(f"usage: {sys.argv[0]} <camera_index>")
+if len(sys.argv) < 3 or len(sys.argv) > 4:
+    print(f"usage: {sys.argv[0]} <camera_index> <camera_name> [<num_images>=50]")
     exit(0)
 
-cap = cv.VideoCapture(int(sys.argv[1]))
+camera_index = int(sys.argv[1])
+camera_name = sys.argv[2]
+num_images = 50
+if (len(sys.argv) == 4):
+    num_images = int(sys.argv[3])
+cap = cv.VideoCapture(camera_index)
 
 # criteria used by checkerboard pattern detector.
 # Change this if the code can't find the checkerboard
@@ -41,7 +47,7 @@ objpoints = []  # 3d point in real world space
 
 count = 0
 last = time.time() + 3
-while count < 150:
+while count < num_images:
     _, frame = cap.read()
     # print(frame)
     cv.imshow("img", frame)
@@ -71,13 +77,31 @@ while count < 150:
 ret, mtx, dist, rvecs, tvecs = cv.calibrateCamera(
     objpoints, imgpoints, (width, height), None, None
 )
-out = {"k": mtx.reshape(-1).tolist(), "d": dist[0].tolist()}
-# print(out)
-print(yaml.dump(out))
-# # print('rmse:', ret)
-# # print('camera matrix:\n', mtx)
-# # print('distortion coeffs:', dist)
-# # print('Rs:\n', rvecs)
-# # print('Ts:\n', tvecs)
+out = {
+    "usb_camera_publisher": {
+        "ros__parameters": {
+            "camera_name": camera_name,
+            "camera_index": camera_index,
+            "camera_model_last_calibrated": datetime.datetime.now().isoformat(),
+            "camera_model_n_calibration_images": num_images,
+            "camera_model_d": dist[0].tolist(),
+            "camera_model_k": mtx.reshape(-1).tolist()
+        }
+    }
+}
 
-# mtx, dist
+out_path = os.path.join(
+    os.path.abspath(os.path.dirname(__file__)),
+    f"../src/guppy_vision/calib/{camera_name}.yaml"
+)
+
+if os.path.isfile(out_path):
+    print(f"the file src/guppy_vision/calib/{camera_name}.yaml already exists...")
+    if input(f"overwrite? [y/N] ").lower() != "y":
+        print("not writing...")
+        exit(-1)
+
+with open(out_path, "w+") as f:
+    f.write(yaml.dump(out, sort_keys=False))
+
+print(f"calibration config written to src/guppy_vision/calib/{camera_name}.yaml")

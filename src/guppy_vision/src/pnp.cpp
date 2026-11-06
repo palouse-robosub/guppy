@@ -9,6 +9,7 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <chrono>
+#include <string>
 #include <vector>
 
 using namespace std::chrono_literals;
@@ -16,22 +17,26 @@ using namespace std::chrono_literals;
 class PerspectiveNPoint : public rclcpp::Node {
   public:
     PerspectiveNPoint() : Node("pnp") {
+        this->declare_parameter("camera_name", "default");
+
+        std::string camera_name = this->get_parameter("camera_name").as_string();
+
         corner_sub_ =
             this->create_subscription<guppy_msgs::msg::CornerDetectionList>(
-                "/cam/test/detections", 10,
+                std::string("/cam/") + camera_name + "detections", 10,
                 std::bind(
                     &PerspectiveNPoint::callback, this, std::placeholders::_1
                 )
             );
         info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>(
-            "/cam/test/camera_info", 10,
-            std::bind(
-                &PerspectiveNPoint::info_callback, this, std::placeholders::_1
-            )
+                std::string("/cam/") + camera_name + "camera_info", 10,
+                std::bind(
+                    &PerspectiveNPoint::info_callback, this, std::placeholders::_1
+                )
         );
 
         output_pub_ = this->create_publisher<guppy_msgs::msg::TransformList>(
-            "/cam/test/transforms", 10
+            std::string("/cam/") + camera_name + "transforms", 10,
         );
     }
 
@@ -59,8 +64,8 @@ class PerspectiveNPoint : public rclcpp::Node {
                 imagePoints.push_back(cv::Point2d(point.x, point.y));
             }
 
-            cv::Mat k = cv::Mat(3, 3, CV_64F, camera_info_.k.data()).clone();
             cv::Mat d = cv::Mat(1, 5, CV_64F, camera_info_.d.data()).clone();
+            cv::Mat k = cv::Mat(3, 3, CV_64F, camera_info_.k.data()).clone();
 
             cv::Mat tvec;
             cv::Mat rvec;

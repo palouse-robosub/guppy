@@ -13,14 +13,19 @@
 #include <chrono>
 #include <map>
 #include <vector>
+#include <string>
 
 using namespace std::chrono_literals;
 
 class SlamNode : public rclcpp::Node {
   public:
     SlamNode() : Node("slam") {
+        this->declare_parameter("camera_name", "default");
+
+        std::string camera_name = this->get_parameter("camera_name").as_string();
+
         output_pub_ = this->create_subscription<guppy_msgs::msg::TransformList>(
-            "/cam/test/transforms", 10,
+            std::string("/cam/") + camera_name + "/transforms", 10,
             std::bind(&SlamNode::callback, this, std::placeholders::_1)
         );
 
