@@ -1,10 +1,5 @@
 <launch>
-    <node pkg="guppy_vision" exec="usb_camera_publisher">
-        <param from="$(find-pkg-share guppy_vision)/calib/framework13.yaml" />
-    </node>
-    <node pkg="guppy_vision" exec="pnp"/>
-    <node pkg="guppy_vision" exec="slam"/>
-    <node pkg="guppy_vision" exec="aprilrepub"/>
-    <!-- <node pkg="guppy_vision" exec="apriltag_detector.py"/> -->
-    <node pkg="guppy_vision" exec="object_detection.py"/>
+    <include file="$(find-pkg-share guppy_vision)/launch/camera.xml">
+        <arg name="camera" value="default" />
+    </include>
 </launch>
