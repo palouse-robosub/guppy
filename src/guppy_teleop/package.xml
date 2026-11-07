@@ -13,7 +13,6 @@
   <test_depend>python3-pytest</test_depend>
 
   <depend>evdev</depend>
-  <depend>PySide6</depend>
   <depend>pygame</depend>
 
   <export>
