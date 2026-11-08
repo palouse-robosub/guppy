@@ -3,18 +3,18 @@
         <param from="$(find-pkg-share guppy_vision)/calib/$(var camera).yaml" />
     </node>
     <node pkg="guppy_vision" exec="pnp">
-        <param name="camera_nam" value="$(var camera)"/>
+        <param name="camera_name" value="$(var camera)"/>
     </node>
     <node pkg="guppy_vision" exec="slam">
-        <param name="camera_nam" value="$(var camera)"/>
+        <param name="camera_name" value="$(var camera)"/>
     </node>
-    <node pkg="guppy_vision" exec="aprilrepub">
-        <param name="camera_nam" value="$(var camera)"/>
-    </node>
+    <!-- <node pkg="guppy_vision" exec="aprilrepub">
+        <param name="camera_name" value="$(var camera)"/>
+    </node> -->
     <node pkg="guppy_vision" exec="apriltag_detector.py">
-        <param name="camera_nam" value="$(var camera)"/>
+        <param name="camera_name" value="$(var camera)"/>
     </node>
-    <node pkg="guppy_vision" exec="object_detection.py">
-        <param name="camera_nam" value="$(var camera)"/>
-    </node>
+    <!-- <node pkg="guppy_vision" exec="object_detection.py">
+        <param name="camera_name" value="$(var camera)"/>
+    </node> -->
 </launch>

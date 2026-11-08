@@ -23,20 +23,20 @@ class PerspectiveNPoint : public rclcpp::Node {
 
         corner_sub_ =
             this->create_subscription<guppy_msgs::msg::CornerDetectionList>(
-                std::string("/cam/") + camera_name + "detections", 10,
+                std::string("/cam/") + camera_name + "/detections", 10,
                 std::bind(
                     &PerspectiveNPoint::callback, this, std::placeholders::_1
                 )
             );
         info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>(
-                std::string("/cam/") + camera_name + "camera_info", 10,
+                std::string("/cam/") + camera_name + "/camera_info", 10,
                 std::bind(
                     &PerspectiveNPoint::info_callback, this, std::placeholders::_1
                 )
         );
 
         output_pub_ = this->create_publisher<guppy_msgs::msg::TransformList>(
-            std::string("/cam/") + camera_name + "transforms", 10,
+            std::string("/cam/") + camera_name + "/transforms", 10
         );
     }
 

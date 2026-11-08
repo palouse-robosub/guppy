@@ -19,14 +19,17 @@ detector = apriltag.Detector()
 class AprilTagDetection(Node):
     def __init__(self):
         super().__init__("apriltag_detector")
+
+        self.declare_parameter("camera_name", "default")
+
         self.subscription = self.create_subscription(
-            Image, "/cam/test", self.callback, qos_profile_sensor_data
+            Image, "/cam/" + self.get_parameter("camera_name").value, self.callback, qos_profile_sensor_data
         )
         self.annotation_publisher = self.create_publisher(
-            Image, "/cam/test_annotated", qos_profile_sensor_data
+            Image, "/cam/" + self.get_parameter("camera_name").value + "/annotated", qos_profile_sensor_data
         )
         self.publisher = self.create_publisher(
-            CornerDetectionList, "/cam/test/detections", 10
+            CornerDetectionList, "/cam/" + self.get_parameter("camera_name").value + "/detections", 10
         )
 
     def callback(self, image):
