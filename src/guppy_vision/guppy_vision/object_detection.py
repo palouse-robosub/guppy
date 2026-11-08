@@ -22,9 +22,7 @@ class ObjectDetection(Node):
         super().__init__("object_detection")
 
         # Model generously provided by OSU-UWRT
-        self.model = YOLO(
-            "/home/robosub/guppy/src/guppy_vision/resource/ffc_rs_26.pt"
-        )
+        self.model = YOLO("/home/robosub/guppy/src/guppy_vision/resource/ffc_rs_26.pt")
         self.bridge = CvBridge()
 
         self.declare_parameter("camera_name", "test")
@@ -128,11 +126,12 @@ class ObjectDetection(Node):
                 # for slam - square sign of known dimensions
                 newDet.square = True
 
+                # 11.5" square for now
                 points = [
-                    (-0.08, 0.08, 0),
-                    (0.08, 0.08, 0),
-                    (0.08, -0.08, 0),
-                    (-0.08, -0.08, 0),
+                    (-0.14605, 0.14605, 0),
+                    (0.14605, 0.14605, 0),
+                    (0.14605, -0.14605, 0),
+                    (-0.14605, -0.14605, 0),
                 ]
 
                 for x, y, z in points:
