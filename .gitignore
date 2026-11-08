@@ -216,6 +216,7 @@ activemq-data/
 
 # Environments
 .env
+.env.*
 .venv
 env/
 venv/

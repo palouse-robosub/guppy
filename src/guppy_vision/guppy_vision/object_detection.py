@@ -23,13 +23,18 @@ class ObjectDetection(Node):
 
         # Model generously provided by OSU-UWRT
         self.model = YOLO(
-            "/home/andy/code/guppy/src/guppy_vision/resource/ffc_rs_26.pt"
+            "/home/robosub/guppy/src/guppy_vision/resource/ffc_rs_26.pt"
         )
         self.bridge = CvBridge()
 
+        self.declare_parameter("camera_name", "test")
+        self.declare_parameter("expansion_ratio", "0.3")
+
+        camera_name = self.get_parameter("camera_name")
+
         self.sub = self.create_subscription(
             CompressedImage,
-            "/cam/test/compressed",
+            f"/cam/{camera_name}/compressed",
             self.callback,
             qos_profile_sensor_data,
         )
@@ -50,7 +55,7 @@ class ObjectDetection(Node):
 
         corner_list = CornerDetectionList()
 
-        boxes = results[0].boxes if results[0].boxes is not None else None
+        boxes = results[0].boxes
 
         if boxes:
             json = jsonlib.loads(results[0].to_json())
@@ -63,8 +68,9 @@ class ObjectDetection(Node):
                 h = y2 - y1
 
                 # offset from the detection to grab whole sign
-                off_x = int(w * 0.3)
-                off_y = int(h * 0.3)
+                ratio = float(self.get_parameter("expansion_ratio"))
+                off_x = int(w * ratio)
+                off_y = int(h * ratio)
 
                 off = max(off_x, off_y)  # grab highest for detections not close to 1:1
 
