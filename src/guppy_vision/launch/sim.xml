@@ -1,4 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
+<<<<<<< Updated upstream
     <include file="$(find-pkg-share guppy_vision)/launch/core.xml" />
+=======
+    <node pkg="ros_gz_bridge" exec="parameter_bridge"
+          args="/camera/image_raw@sensor_msgs/msg/Image[gz.msgs.Image">
+        <remap from="/camera/image_raw" to="/cam/test"/>
+    </node>
+    <node pkg="ros_gz_bridge" exec="parameter_bridge"
+          args="/camera/camera_info@sensor_msgs/msg/CameraInfo[gz.msgs.CameraInfo">
+        <remap from="/camera/camera_info" to="/cam/test/camera_info"/>
+    </node>
+
+    <node pkg="guppy_vision" exec="pnp"/>
+    <node pkg="guppy_vision" exec="slam"/>
+    <node pkg="guppy_vision" exec="aprilrepub"/>
+    <node pkg="guppy_vision" exec="object_detection.py"/>
+>>>>>>> Stashed changes
 </launch>

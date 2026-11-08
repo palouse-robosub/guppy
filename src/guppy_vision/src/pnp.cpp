@@ -65,9 +65,12 @@ class PerspectiveNPoint : public rclcpp::Node {
             cv::Mat tvec;
             cv::Mat rvec;
 
+            if (objectPoints.size() != 4 || imagePoints.size() != 4)
+                continue;
+
             cv::solvePnP(
                 objectPoints, imagePoints, k, d, rvec, tvec, 0,
-                cv::SolvePnPMethod::SOLVEPNP_IPPE_SQUARE
+                cv::SolvePnPMethod::SOLVEPNP_IPPE
             );
 
             RCLCPP_DEBUG(
