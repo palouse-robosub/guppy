@@ -100,7 +100,7 @@ jobs:
   build_and_test_ros2:
     name: Build and Test ROS / Lint
     needs: [lint, commit_names, get_changes]
-    if: needs.get_changes.outputs.code == 'true'
+    if: needs.get_changes.outputs.code == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout guppy
