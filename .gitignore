@@ -216,6 +216,7 @@ activemq-data/
 
 # Environments
 .env
+.env.*
 .venv
 env/
 venv/
@@ -327,3 +328,5 @@ compile_commands.json
 .direnv
 
 robot_localization_debug.txt
+
+rosbags/
