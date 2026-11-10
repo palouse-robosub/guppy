@@ -109,6 +109,9 @@ jobs:
           submodules: recursive
           token: ${{ secrets.SUBMODULE_PAT }}
 
+      - name: Install & setup VCAN
+        run: .github/workflows/can_install.sh
+
       - name: Install Determinate Nix
         uses: DeterminateSystems/nix-installer-action@main
 
