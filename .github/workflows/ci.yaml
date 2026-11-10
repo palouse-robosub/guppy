@@ -12,6 +12,15 @@ permissions:
   pull-requests: write
 
 jobs:
+  test_vcan:
+    name: Test VCAN Setup in Actions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install & setup VCAN
+        run: .github/workflows/can_install.sh
+      - name: Test VCAN
+        run: .github/workflows/can_test.sh
+
   lint:
     name: Lint / Format
     runs-on: ubuntu-latest
