@@ -12,17 +12,6 @@ permissions:
   pull-requests: write
 
 jobs:
-  test_vcan:
-    name: Test VCAN Setup in Actions
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out Git repository
-        uses: actions/checkout@v7
-      - name: Install & setup VCAN
-        run: .github/workflows/can_install.sh
-      - name: Test VCAN
-        run: .github/workflows/can_test.sh
-
   lint:
     name: Lint / Format
     runs-on: ubuntu-latest
@@ -119,6 +108,9 @@ jobs:
           fetch-depth: 2
           submodules: recursive
           token: ${{ secrets.SUBMODULE_PAT }}
+
+      - name: Install & setup VCAN
+        run: .github/workflows/can_install.sh
 
       - name: Install Determinate Nix
         uses: DeterminateSystems/nix-installer-action@main
