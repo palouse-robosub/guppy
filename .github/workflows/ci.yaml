@@ -16,6 +16,8 @@ jobs:
     name: Test VCAN Setup in Actions
     runs-on: ubuntu-latest
     steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v7
       - name: Install & setup VCAN
         run: .github/workflows/can_install.sh
       - name: Test VCAN
