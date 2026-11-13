@@ -1,12 +1,18 @@
+#include "geometry_msgs/msg/transform_stamped.hpp"
 #include "guppy_control/chassis_controller.hpp"
 #include "guppy_control/t200_interface.hpp"
 #include "rclcpp/rclcpp.hpp"
+#include <memory>
 #include <rclcpp/subscription.hpp>
+#include <string>
 
 #include "guppy_msgs/msg/state.hpp"
 #include "guppy_msgs/srv/set_hold_pose.hpp"
 #include "std_msgs/msg/float32.hpp"
 #include "std_msgs/msg/float64.hpp"
+
+#include "tf2_ros/buffer.hpp"
+#include "tf2_ros/transform_listener.hpp"
 
 using namespace std::chrono_literals;
 using namespace t200_interface;
@@ -192,6 +198,26 @@ class ControlChassis : public rclcpp::Node {
         controller =
             new ChassisController(parameters, thruster_interface, 100000);
 
+        tf_buffer   = std::make_unique<tf2_ros::Buffer>(this->get_clock());
+        tf_listener = std::make_unique<tf2_ros::TransformListener>(*tf_buffer);
+
+        std::string target = "thruster2C_link";
+        std::string base   = "base_link";
+
+        geometry_msgs::msg::TransformStamped t;
+        t = tf_buffer->lookupTransform(target, base, tf2::TimePointZero);
+
+        RCLCPP_INFO(
+            this->get_logger(),
+            "Motor transform:\n"
+            "  Translation: [x: %.4f, y: %.4f, z: %.4f]\n"
+            "  Rotation:    [x: %.4f, y: %.4f, z: %.4f, w: %.4f]",
+            t.transform.translation.x, t.transform.translation.y,
+            t.transform.translation.z, t.transform.rotation.x,
+            t.transform.rotation.y, t.transform.rotation.z,
+            t.transform.rotation.w
+        );
+
         // setup motor publishers for sim
         for (int i = 0; i < 8; i++) {
             sim_motor_publishers_[i] =
@@ -292,6 +318,9 @@ class ControlChassis : public rclcpp::Node {
     rclcpp::Subscription<guppy_msgs::msg::State>::SharedPtr state_subscription_;
     rclcpp::TimerBase::SharedPtr                            timer_;
     rclcpp::Service<guppy_msgs::srv::SetHoldPose>::SharedPtr reset_service;
+
+    std::unique_ptr<tf2_ros::Buffer>            tf_buffer;
+    std::unique_ptr<tf2_ros::TransformListener> tf_listener;
 
     std::shared_ptr<rclcpp::ParameterEventHandler> param_subscriber_;
     std::shared_ptr<rclcpp::ParameterEventCallbackHandle>
