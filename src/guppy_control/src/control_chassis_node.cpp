@@ -2,9 +2,12 @@
 #include "guppy_control/chassis_controller.hpp"
 #include "guppy_control/t200_interface.hpp"
 #include "rclcpp/rclcpp.hpp"
+#include <Eigen/src/Core/Matrix.h>
+#include <Eigen/src/Geometry/Quaternion.h>
 #include <memory>
 #include <rclcpp/subscription.hpp>
 #include <string>
+#include <vector>
 
 #include "guppy_msgs/msg/state.hpp"
 #include "guppy_msgs/srv/set_hold_pose.hpp"
@@ -201,11 +204,41 @@ class ControlChassis : public rclcpp::Node {
         tf_buffer   = std::make_unique<tf2_ros::Buffer>(this->get_clock());
         tf_listener = std::make_unique<tf2_ros::TransformListener>(*tf_buffer);
 
-        std::string target = "thruster2C_link";
-        std::string base   = "base_link";
+        std::vector<std::string> motor_links = {
+            "thruster2C_link", "thruster2M_link", "thruster3C_link",
+            "thruster3M_link", "thruster0C_link", "thruster0M_link",
+            "thruster1C_link", "thruster1M_link"
+        };
 
-        geometry_msgs::msg::TransformStamped t;
-        t = tf_buffer->lookupTransform(target, base, tf2::TimePointZero);
+        Eigen::Matrix<double, 6, N_MOTORS> motor_coefficients = Eigen::Matrix<double, 6, N_MOTORS>::Zero();
+
+        for (std::string& target : motor_links) {
+            if (!tf_buffer->canTransform(
+                    target, "base_link", tf2::TimePointZero,
+                    tf2::durationFromSec(5.0)
+                )) {
+                RCLCPP_FATAL(
+                    get_logger(), "TF base_link -> %s not available \n"
+                    "Unable to determine position of motors - exiting",
+                    target.c_str()
+                );
+                return;
+            }
+            auto t = tf_buffer->lookupTransform("base_link", target, tf2::TimePointZero);
+        }
+
+        Eigen::Quaterniond quat(
+            t.transform.rotation.w, t.transform.rotation.x,
+            t.transform.rotation.y, t.transform.rotation.z
+        );
+
+        auto euler = quat.toRotationMatrix().eulerAngles(0, 1, 2);
+
+        constexpr double r2d = 180 / M_PI;
+
+        euler *= r2d;
+
+        std::cout << euler << std::endl;
 
         RCLCPP_INFO(
             this->get_logger(),
