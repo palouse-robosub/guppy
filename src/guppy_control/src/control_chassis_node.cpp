@@ -73,6 +73,7 @@ class ControlChassis : public rclcpp::Node {
         ChassisController::ChassisControllerParams parameters;
 
         load_params_(&parameters);    // load parameters from configuration file
+        print_params_();
 
         this->param_subscriber_ =
             std::make_shared<rclcpp::ParameterEventHandler>(
@@ -210,7 +211,8 @@ class ControlChassis : public rclcpp::Node {
             "thruster1C_link", "thruster1M_link"
         };
 
-        Eigen::Matrix<double, 6, N_MOTORS> motor_coefficients = Eigen::Matrix<double, 6, N_MOTORS>::Zero();
+        Eigen::Matrix<double, 6, N_MOTORS> motor_coefficients =
+            Eigen::Matrix<double, 6, N_MOTORS>::Zero();
 
         for (std::string& target : motor_links) {
             if (!tf_buffer->canTransform(
@@ -218,38 +220,39 @@ class ControlChassis : public rclcpp::Node {
                     tf2::durationFromSec(5.0)
                 )) {
                 RCLCPP_FATAL(
-                    get_logger(), "TF base_link -> %s not available \n"
+                    get_logger(),
+                    "TF base_link -> %s not available \n"
                     "Unable to determine position of motors - exiting",
                     target.c_str()
                 );
                 return;
             }
-            auto t = tf_buffer->lookupTransform("base_link", target, tf2::TimePointZero);
+            auto t = tf_buffer->lookupTransform(
+                "base_link", target, tf2::TimePointZero
+            );
+            Eigen::Quaterniond quat(
+                t.transform.rotation.w, t.transform.rotation.x,
+                t.transform.rotation.y, t.transform.rotation.z
+            );
+
+            auto euler = quat.toRotationMatrix().eulerAngles(0, 1, 2);
+
+            constexpr double r2d = 180 / M_PI;
+
+            euler *= r2d;
+
+            std::cout << euler << std::endl;
+            RCLCPP_INFO(
+                this->get_logger(),
+                "Motor transform:\n"
+                "  Translation: [x: %.4f, y: %.4f, z: %.4f]\n"
+                "  Rotation:    [x: %.4f, y: %.4f, z: %.4f, w: %.4f]",
+                t.transform.translation.x, t.transform.translation.y,
+                t.transform.translation.z, t.transform.rotation.x,
+                t.transform.rotation.y, t.transform.rotation.z,
+                t.transform.rotation.w
+            );
         }
-
-        Eigen::Quaterniond quat(
-            t.transform.rotation.w, t.transform.rotation.x,
-            t.transform.rotation.y, t.transform.rotation.z
-        );
-
-        auto euler = quat.toRotationMatrix().eulerAngles(0, 1, 2);
-
-        constexpr double r2d = 180 / M_PI;
-
-        euler *= r2d;
-
-        std::cout << euler << std::endl;
-
-        RCLCPP_INFO(
-            this->get_logger(),
-            "Motor transform:\n"
-            "  Translation: [x: %.4f, y: %.4f, z: %.4f]\n"
-            "  Rotation:    [x: %.4f, y: %.4f, z: %.4f, w: %.4f]",
-            t.transform.translation.x, t.transform.translation.y,
-            t.transform.translation.z, t.transform.rotation.x,
-            t.transform.rotation.y, t.transform.rotation.z,
-            t.transform.rotation.w
-        );
 
         // setup motor publishers for sim
         for (int i = 0; i < 8; i++) {
