@@ -100,7 +100,7 @@ jobs:
   build_and_test_ros2:
     name: Build and Test ROS / Lint
     needs: [lint, commit_names, get_changes]
-    if: !canceled() && (needs.get_changes.outputs.code == 'true' || github.ref_name == 'main')
+    if: ${{ !cancelled() && (needs.get_changes.outputs.code == 'true' || github.ref_name == 'main') }}
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout guppy
