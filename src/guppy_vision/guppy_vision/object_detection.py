@@ -26,9 +26,11 @@ class ObjectDetection(Node):
         self.bridge = CvBridge()
 
         self.declare_parameter("camera_name", "test")
-        self.declare_parameter("expansion_ratio", "0.3")
+        self.declare_parameter("expansion_ratio", 0.3)
 
-        camera_name = self.get_parameter("camera_name")
+        camera_name = (
+            self.get_parameter("camera_name").get_parameter_value().string_value
+        )
 
         self.sub = self.create_subscription(
             CompressedImage,
@@ -66,7 +68,11 @@ class ObjectDetection(Node):
                 h = y2 - y1
 
                 # offset from the detection to grab whole sign
-                ratio = float(self.get_parameter("expansion_ratio"))
+                ratio = float(
+                    self.get_parameter("expansion_ratio")
+                    .get_parameter_value()
+                    .double_value
+                )
                 off_x = int(w * ratio)
                 off_y = int(h * ratio)
 
