@@ -43,44 +43,49 @@ class SlamNode : public rclcpp::Node {
     }
 
     void callback(guppy_msgs::msg::TransformList::UniquePtr msg) {
-        std::vector<tf2::Transform> potential_odoms;
+        // std::vector<tf2::Transform> potential_odoms;
 
-        for (geometry_msgs::msg::TransformStamped tf_msg_cam_object :
-             msg->transforms) {
-            std::string name = tf_msg_cam_object.child_frame_id;
+        for (geometry_msgs::msg::TransformStamped tf_msg_cam_object : msg->transforms) {
+            // std::string object_name = tf_msg_cam_object.child_frame_id;
             tf_broadcaster_->sendTransform(tf_msg_cam_object);
 
-            if (already_seen.count(name) > 0) {
-                tf2::Transform tf_map_obj = already_seen[name];
-                tf2::Transform tf_odom_object;
-                geometry_msgs::msg::TransformStamped tf_msg_odom_object =
-                    tf_buffer_->lookupTransform(
-                        "odom", name, this->get_clock()->now()
-                    );
-                tf2::fromMsg(tf_msg_odom_object.transform, tf_odom_object);
+            // if (already_seen.count(object_name) > 0) {
+            //     // already seen
 
-                potential_odoms.push_back(
-                    tf_map_obj * tf_odom_object.inverse()
-                );
-            } else {
-                geometry_msgs::msg::TransformStamped tf_msg_map_object =
-                    tf_buffer_->lookupTransform(
-                        "map", name, this->get_clock()->now()
-                    );
-                tf2::fromMsg(tf_msg_map_object.transform, already_seen[name]);
-            }
+
+            //     // tf2::Transform tf_map_obj = already_seen[object_name];
+            //     // tf2::Transform tf_odom_object;
+            //     // geometry_msgs::msg::TransformStamped tf_msg_odom_object =
+            //     //     tf_buffer_->lookupTransform(
+            //     //         "odom", object_name, this->get_clock()->now()
+            //     //     );
+            //     // tf2::fromMsg(tf_msg_odom_object.transform, tf_odom_object);
+
+            //     // potential_odoms.push_back(
+            //     //     tf_map_obj * tf_odom_object.inverse()
+            //     // );
+            // } else {
+            //     geometry_msgs::msg::TransformStamped tf_msg_map_object =
+            //         tf_buffer_->lookupTransform(
+            //             "odom", object_name, this->get_clock()->now()
+            //         );
+
+            //     tf
+
+            //     tf2::fromMsg(tf_msg_map_object.transform, already_seen[object_name]);
+            // }
         }
 
-        if (potential_odoms.size() > 0) {
-            geometry_msgs::msg::TransformStamped tfStampedOut;
+        // if (potential_odoms.size() > 0) {
+        //     geometry_msgs::msg::TransformStamped tfStampedOut;
 
-            tfStampedOut.child_frame_id  = "odom";
-            tfStampedOut.header.stamp    = this->get_clock()->now();
-            tfStampedOut.header.frame_id = "map";
+        //     tfStampedOut.child_frame_id  = "odom";
+        //     tfStampedOut.header.stamp    = this->get_clock()->now();
+        //     tfStampedOut.header.frame_id = "map";
 
-            tfStampedOut.transform = tf2::toMsg(potential_odoms[0]);
-            tf_broadcaster_->sendTransform(tfStampedOut);
-        }
+        //     tfStampedOut.transform = tf2::toMsg(potential_odoms[0]);
+        //     tf_broadcaster_->sendTransform(tfStampedOut);
+        // }
     }
 
   private:

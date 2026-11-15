@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
     <!-- <include file="$(find-pkg-share guppy_control)/launch/core.xml" /> -->
-    <node pkg="ros_gz_bridge" exec="parameter_bridge" args="/odom@nav_msgs/msg/Odometry@gz.msgs.Odometry"></node>
+    <node pkg="ros_gz_bridge" exec="parameter_bridge" args="/odometry/filtered@nav_msgs/msg/Odometry@gz.msgs.Odometry"></node>
+    <node pkg="odom_to_tf_ros2" exec="odom_to_tf">
+        <param name="frame_id" value="odom" />
+        <param name="child_frame_id" value="base_link" />
+        <param name="odom_topic" value="/odometry/filtered" />
+    </node>
 </launch>
