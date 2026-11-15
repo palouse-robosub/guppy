@@ -33,17 +33,17 @@ class AprilTagDetection(Node):
             Image,
             "/cam/" + self.get_parameter("camera_name").value,
             self.callback,
-            qos_profile_sensor_data
+            qos_profile_sensor_data,
         )
         self.annotation_publisher = self.create_publisher(
             Image,
             "/cam/" + self.get_parameter("camera_name").value + "/annotated",
-            qos_profile_sensor_data
+            qos_profile_sensor_data,
         )
         self.publisher = self.create_publisher(
             CornerDetectionList,
             "/cam/" + self.get_parameter("camera_name").value + "/detections",
-            10
+            10,
         )
 
     def callback(self, image):
