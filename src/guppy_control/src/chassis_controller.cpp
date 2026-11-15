@@ -147,10 +147,9 @@ void ChassisController::reset_holding_pose(
             == request->guppy_msgs::srv::SetHoldPose::Request::GLOBAL) {
             this->desired_position_state_    = pos;
             this->desired_orientation_state_ = quat;
-        } else if (
-            request->type
-            == request->guppy_msgs::srv::SetHoldPose::Request::RELATIVE
-        ) {
+        } else if (request->type
+                   == request
+                          ->guppy_msgs::srv::SetHoldPose::Request::RELATIVE) {
             this->desired_orientation_state_ =
                 this->current_orientation_state_ * quat;
             this->desired_position_state_ = this->current_position_state_ + pos;
