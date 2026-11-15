@@ -55,6 +55,11 @@ install(DIRECTORY launch
   DESTINATION share/${PROJECT_NAME}
 )
 
+# Install resources
+install(DIRECTORY resource
+  DESTINATION share/${PROJECT_NAME}
+)
+
 # Camera calibration/config files
 install(DIRECTORY calib
   DESTINATION share/${PROJECT_NAME}/
