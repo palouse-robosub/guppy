@@ -27,7 +27,7 @@ class ObjectDetection(Node):
         )
         self.bridge = CvBridge()
 
-        self.declare_parameter("camera_name", "default")
+        self.declare_parameter("camera_name", "default_camera")
         self.declare_parameter("expansion_ratio", 0.3)
 
         camera_name = (

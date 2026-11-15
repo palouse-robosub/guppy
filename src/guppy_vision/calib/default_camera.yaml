@@ -1,6 +1,6 @@
 usb_camera_publisher:
   ros__parameters:
-    camera_name: default
+    camera_name: default_camera
     camera_index: 0
     camera_model_d:
       -  0.11278175177017583

@@ -10,17 +10,20 @@
 #include "tf2_ros/transform_listener.hpp"
 #include <Eigen/Core>
 #include <Eigen/Geometry>
+#include <Eigen/Eigenvalues>
 #include <chrono>
 #include <map>
 #include <vector>
 #include <string>
+
+#define SLAM_ITERATIONS_NEEDED 300
 
 using namespace std::chrono_literals;
 
 class SlamNode : public rclcpp::Node {
   public:
     SlamNode() : Node("slam") {
-        this->declare_parameter("camera_name", "default");
+        this->declare_parameter("camera_name", "default_camera");
 
         std::string camera_name = this->get_parameter("camera_name").as_string();
 
@@ -42,50 +45,80 @@ class SlamNode : public rclcpp::Node {
         // ...
     }
 
+    // function from AI
+    tf2::Transform averageTransforms(const std::vector<tf2::Transform>& ts) {
+        tf2::Vector3 p(0, 0, 0);
+        Eigen::Matrix4d A = Eigen::Matrix4d::Zero();
+
+        for (const auto& t : ts) {
+            p += t.getOrigin();
+
+            auto q = t.getRotation();
+            Eigen::Vector4d v(q.x(), q.y(), q.z(), q.w());
+            A += v * v.transpose();
+        }
+
+        p /= ts.size();
+
+        Eigen::SelfAdjointEigenSolver<Eigen::Matrix4d> es(A);
+        auto q = es.eigenvectors().col(3);
+
+        return tf2::Transform(
+            tf2::Quaternion(q[0], q[1], q[2], q[3]).normalized(),
+            p
+        );
+    }
+
     void callback(guppy_msgs::msg::TransformList::UniquePtr msg) {
         // std::vector<tf2::Transform> potential_odoms;
 
-        for (geometry_msgs::msg::TransformStamped tf_msg_cam_object : msg->transforms) {
-            // std::string object_name = tf_msg_cam_object.child_frame_id;
-            tf_broadcaster_->sendTransform(tf_msg_cam_object);
+        for (geometry_msgs::msg::TransformStamped tf_msg_cam_obj : msg->transforms) {
+            std::string object_name = tf_msg_cam_obj.child_frame_id;
+            std::string camera_name = tf_msg_cam_obj.header.frame_id;
 
-            // if (already_seen.count(object_name) > 0) {
-            //     // already seen
+            if (historical_transforms.count(object_name) > 0 &&
+                historical_transforms[object_name].size() >= SLAM_ITERATIONS_NEEDED) {
 
+                tf2::Transform tf_map_obj = averageTransforms(historical_transforms[object_name]);
 
-            //     // tf2::Transform tf_map_obj = already_seen[object_name];
-            //     // tf2::Transform tf_odom_object;
-            //     // geometry_msgs::msg::TransformStamped tf_msg_odom_object =
-            //     //     tf_buffer_->lookupTransform(
-            //     //         "odom", object_name, this->get_clock()->now()
-            //     //     );
-            //     // tf2::fromMsg(tf_msg_odom_object.transform, tf_odom_object);
+                geometry_msgs::msg::TransformStamped tf_msg_map_obj;
 
-            //     // potential_odoms.push_back(
-            //     //     tf_map_obj * tf_odom_object.inverse()
-            //     // );
-            // } else {
-            //     geometry_msgs::msg::TransformStamped tf_msg_map_object =
-            //         tf_buffer_->lookupTransform(
-            //             "odom", object_name, this->get_clock()->now()
-            //         );
+                tf_msg_map_obj.child_frame_id = object_name;
+                tf_msg_map_obj.header.frame_id = "odom";
+                tf_msg_map_obj.header.stamp = this->get_clock()->now();
+                tf2::toMsg(tf_map_obj, tf_msg_map_obj.transform);
+                
+                tf_static_broadcaster_->sendTransform(tf_msg_map_obj);
+            } else {
+                builtin_interfaces::msg::Time time = tf_msg_cam_obj.header.stamp;
 
-            //     tf
+                try {
+                    geometry_msgs::msg::TransformStamped tf_msg_map_cam =
+                        tf_buffer_->lookupTransform(
+                            "odom", camera_name, time
+                        );
 
-            //     tf2::fromMsg(tf_msg_map_object.transform, already_seen[object_name]);
-            // }
+                    tf2::Transform tf_map_cam;
+                    tf2::fromMsg(tf_msg_map_cam.transform, tf_map_cam);
+
+                    tf2::Transform tf_cam_obj;
+                    tf2::fromMsg(tf_msg_cam_obj.transform, tf_cam_obj);
+
+                    tf2::Transform tf_map_obj = tf_map_cam * tf_cam_obj;
+
+                    historical_transforms[object_name].push_back(tf_map_obj);
+
+                    // tf_broadcaster_->sendTransform(tf_msg_cam_obj);
+                }
+                catch (const tf2::TransformException& ex) {
+                    RCLCPP_WARN(
+                        this->get_logger(),
+                        "TF lookup failed: %s",
+                        ex.what()
+                    );
+                }
+            }
         }
-
-        // if (potential_odoms.size() > 0) {
-        //     geometry_msgs::msg::TransformStamped tfStampedOut;
-
-        //     tfStampedOut.child_frame_id  = "odom";
-        //     tfStampedOut.header.stamp    = this->get_clock()->now();
-        //     tfStampedOut.header.frame_id = "map";
-
-        //     tfStampedOut.transform = tf2::toMsg(potential_odoms[0]);
-        //     tf_broadcaster_->sendTransform(tfStampedOut);
-        // }
     }
 
   private:
@@ -96,7 +129,7 @@ class SlamNode : public rclcpp::Node {
     std::unique_ptr<tf2_ros::Buffer>            tf_buffer_;
 
     bool                                  has_map_transform = false;
-    std::map<std::string, tf2::Transform> already_seen;
+    std::map<std::string, std::vector<tf2::Transform>> historical_transforms;
 };
 
 int main(int argc, char* argv[]) {

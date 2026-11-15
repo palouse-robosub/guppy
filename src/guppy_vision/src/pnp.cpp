@@ -17,7 +17,7 @@ using namespace std::chrono_literals;
 class PerspectiveNPoint : public rclcpp::Node {
   public:
     PerspectiveNPoint() : Node("pnp") {
-        this->declare_parameter("camera_name", "default");
+        this->declare_parameter("camera_name", "default_camera");
 
         std::string camera_name = this->get_parameter("camera_name").as_string();
 

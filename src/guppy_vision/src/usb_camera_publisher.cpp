@@ -23,7 +23,7 @@ class USBCameraPublisher : public rclcpp::Node {
 
     USBCameraPublisher() : Node("usb_camera_publisher") {
         this->declare_parameter("camera_index", 0);
-        this->declare_parameter("camera_name", "default");
+        this->declare_parameter("camera_name", "default_camera");
         this->declare_parameter<std::vector<double>>(
             "camera_model_d", std::vector<double>(5, 0.0)
         );

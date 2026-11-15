@@ -25,7 +25,7 @@ class AprilTagDetection(Node):
     def __init__(self):
         super().__init__("apriltag_detector")
 
-        self.declare_parameter("camera_name", "default")
+        self.declare_parameter("camera_name", "default_camera")
 
         self.subscription = self.create_subscription(
             Image, "/cam/" + self.get_parameter("camera_name").value, self.callback, qos_profile_sensor_data

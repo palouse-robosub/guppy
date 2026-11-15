@@ -1,5 +1,5 @@
 <launch>
     <include file="$(find-pkg-share guppy_vision)/launch/camera.xml">
-        <arg name="camera" value="default" />
+        <arg name="camera" value="default_camera" />
     </include>
 </launch>
