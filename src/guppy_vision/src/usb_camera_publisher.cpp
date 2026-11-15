@@ -31,10 +31,13 @@ class USBCameraPublisher : public rclcpp::Node {
             "camera_model_k", std::vector<double>(9, 0.0)
         );
 
-        int camera_index = this->get_parameter("camera_index").as_int();
-        std::string camera_name = this->get_parameter("camera_name").as_string();
+        int         camera_index = this->get_parameter("camera_index").as_int();
+        std::string camera_name =
+            this->get_parameter("camera_name").as_string();
 
-        RCLCPP_INFO(this->get_logger(), "Loading camera_index=%d", camera_index);
+        RCLCPP_INFO(
+            this->get_logger(), "Loading camera_index=%d", camera_index
+        );
 
         camera.open(camera_index);
 
@@ -55,8 +58,9 @@ class USBCameraPublisher : public rclcpp::Node {
         it_ = std::make_unique<image_transport::ImageTransport>(
             shared_from_this()
         );
-        std::string camera_name = this->get_parameter("camera_name").as_string();
-        image_pub_        = it_->advertise(
+        std::string camera_name =
+            this->get_parameter("camera_name").as_string();
+        image_pub_ = it_->advertise(
             "/cam/" + camera_name, rclcpp::SensorDataQoS().get_rmw_qos_profile()
         );
     }
@@ -77,21 +81,21 @@ class USBCameraPublisher : public rclcpp::Node {
         sensor_msgs::msg::CameraInfo info;
         info.height           = image.rows;
         info.width            = image.cols;
-        info.distortion_model = "plumb_bob"; // ...I think... --cole
-
+        info.distortion_model = "plumb_bob";    // ...I think... --cole
 
         auto k_vector = this->get_parameter("camera_model_k").as_double_array();
         if (k_vector.size() == 9) {
             std::copy(k_vector.begin(), k_vector.end(), info.k.begin());
         } else {
-            RCLCPP_ERROR(this->get_logger(), "Parameter 'camera_model_k' must have exactly 9 elements.");
+            RCLCPP_ERROR(
+                this->get_logger(),
+                "Parameter 'camera_model_k' must have exactly 9 elements."
+            );
         }
-
 
         info.d = this->get_parameter("camera_model_d").as_double_array();
 
         info_pub_->publish(info);
-
     }
 
     cv::VideoCapture camera;

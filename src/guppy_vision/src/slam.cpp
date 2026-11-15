@@ -9,12 +9,12 @@
 #include "tf2_ros/transform_broadcaster.hpp"
 #include "tf2_ros/transform_listener.hpp"
 #include <Eigen/Core>
-#include <Eigen/Geometry>
 #include <Eigen/Eigenvalues>
+#include <Eigen/Geometry>
 #include <chrono>
 #include <map>
-#include <vector>
 #include <string>
+#include <vector>
 
 #define SLAM_ITERATIONS_NEEDED 300
 
@@ -25,7 +25,8 @@ class SlamNode : public rclcpp::Node {
     SlamNode() : Node("slam") {
         this->declare_parameter("camera_name", "default_camera");
 
-        std::string camera_name = this->get_parameter("camera_name").as_string();
+        std::string camera_name =
+            this->get_parameter("camera_name").as_string();
 
         output_pub_ = this->create_subscription<guppy_msgs::msg::TransformList>(
             std::string("/cam/") + camera_name + "/transforms", 10,
@@ -47,13 +48,13 @@ class SlamNode : public rclcpp::Node {
 
     // function from AI
     tf2::Transform averageTransforms(const std::vector<tf2::Transform>& ts) {
-        tf2::Vector3 p(0, 0, 0);
+        tf2::Vector3    p(0, 0, 0);
         Eigen::Matrix4d A = Eigen::Matrix4d::Zero();
 
         for (const auto& t : ts) {
             p += t.getOrigin();
 
-            auto q = t.getRotation();
+            auto            q = t.getRotation();
             Eigen::Vector4d v(q.x(), q.y(), q.z(), q.w());
             A += v * v.transpose();
         }
@@ -64,39 +65,39 @@ class SlamNode : public rclcpp::Node {
         auto q = es.eigenvectors().col(3);
 
         return tf2::Transform(
-            tf2::Quaternion(q[0], q[1], q[2], q[3]).normalized(),
-            p
+            tf2::Quaternion(q[0], q[1], q[2], q[3]).normalized(), p
         );
     }
 
     void callback(guppy_msgs::msg::TransformList::UniquePtr msg) {
         // std::vector<tf2::Transform> potential_odoms;
 
-        for (geometry_msgs::msg::TransformStamped tf_msg_cam_obj : msg->transforms) {
+        for (geometry_msgs::msg::TransformStamped tf_msg_cam_obj :
+             msg->transforms) {
             std::string object_name = tf_msg_cam_obj.child_frame_id;
             std::string camera_name = tf_msg_cam_obj.header.frame_id;
 
-            if (historical_transforms.count(object_name) > 0 &&
-                historical_transforms[object_name].size() >= SLAM_ITERATIONS_NEEDED) {
-
-                tf2::Transform tf_map_obj = averageTransforms(historical_transforms[object_name]);
+            if (historical_transforms.count(object_name) > 0
+                && historical_transforms[object_name].size()
+                       >= SLAM_ITERATIONS_NEEDED) {
+                tf2::Transform tf_map_obj =
+                    averageTransforms(historical_transforms[object_name]);
 
                 geometry_msgs::msg::TransformStamped tf_msg_map_obj;
 
-                tf_msg_map_obj.child_frame_id = object_name;
+                tf_msg_map_obj.child_frame_id  = object_name;
                 tf_msg_map_obj.header.frame_id = "odom";
-                tf_msg_map_obj.header.stamp = this->get_clock()->now();
+                tf_msg_map_obj.header.stamp    = this->get_clock()->now();
                 tf2::toMsg(tf_map_obj, tf_msg_map_obj.transform);
-                
+
                 tf_static_broadcaster_->sendTransform(tf_msg_map_obj);
             } else {
-                builtin_interfaces::msg::Time time = tf_msg_cam_obj.header.stamp;
+                builtin_interfaces::msg::Time time =
+                    tf_msg_cam_obj.header.stamp;
 
                 try {
                     geometry_msgs::msg::TransformStamped tf_msg_map_cam =
-                        tf_buffer_->lookupTransform(
-                            "odom", camera_name, time
-                        );
+                        tf_buffer_->lookupTransform("odom", camera_name, time);
 
                     tf2::Transform tf_map_cam;
                     tf2::fromMsg(tf_msg_map_cam.transform, tf_map_cam);
@@ -109,12 +110,9 @@ class SlamNode : public rclcpp::Node {
                     historical_transforms[object_name].push_back(tf_map_obj);
 
                     // tf_broadcaster_->sendTransform(tf_msg_cam_obj);
-                }
-                catch (const tf2::TransformException& ex) {
+                } catch (const tf2::TransformException& ex) {
                     RCLCPP_WARN(
-                        this->get_logger(),
-                        "TF lookup failed: %s",
-                        ex.what()
+                        this->get_logger(), "TF lookup failed: %s", ex.what()
                     );
                 }
             }
@@ -128,7 +126,7 @@ class SlamNode : public rclcpp::Node {
     std::shared_ptr<tf2_ros::TransformListener> tf_listener_{ nullptr };
     std::unique_ptr<tf2_ros::Buffer>            tf_buffer_;
 
-    bool                                  has_map_transform = false;
+    bool has_map_transform = false;
     std::map<std::string, std::vector<tf2::Transform>> historical_transforms;
 };
 

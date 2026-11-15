@@ -19,7 +19,8 @@ class PerspectiveNPoint : public rclcpp::Node {
     PerspectiveNPoint() : Node("pnp") {
         this->declare_parameter("camera_name", "default_camera");
 
-        std::string camera_name = this->get_parameter("camera_name").as_string();
+        std::string camera_name =
+            this->get_parameter("camera_name").as_string();
 
         corner_sub_ =
             this->create_subscription<guppy_msgs::msg::CornerDetectionList>(
@@ -29,10 +30,10 @@ class PerspectiveNPoint : public rclcpp::Node {
                 )
             );
         info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>(
-                std::string("/cam/") + camera_name + "/camera_info", 10,
-                std::bind(
-                    &PerspectiveNPoint::info_callback, this, std::placeholders::_1
-                )
+            std::string("/cam/") + camera_name + "/camera_info", 10,
+            std::bind(
+                &PerspectiveNPoint::info_callback, this, std::placeholders::_1
+            )
         );
 
         output_pub_ = this->create_publisher<guppy_msgs::msg::TransformList>(
