@@ -17,7 +17,7 @@ if len(sys.argv) < 3 or len(sys.argv) > 4:
 camera_index = int(sys.argv[1])
 camera_name = sys.argv[2]
 num_images = 50
-if (len(sys.argv) == 4):
+if len(sys.argv) == 4:
     num_images = int(sys.argv[3])
 cap = cv.VideoCapture(camera_index)
 
@@ -85,19 +85,19 @@ out = {
             "camera_model_last_calibrated": datetime.datetime.now().isoformat(),
             "camera_model_n_calibration_images": num_images,
             "camera_model_d": dist[0].tolist(),
-            "camera_model_k": mtx.reshape(-1).tolist()
+            "camera_model_k": mtx.reshape(-1).tolist(),
         }
     }
 }
 
 out_path = os.path.join(
     os.path.abspath(os.path.dirname(__file__)),
-    f"../src/guppy_vision/calib/{camera_name}.yaml"
+    f"../src/guppy_vision/calib/{camera_name}.yaml",
 )
 
 if os.path.isfile(out_path):
     print(f"the file src/guppy_vision/calib/{camera_name}.yaml already exists...")
-    if input(f"overwrite? [y/N] ").lower() != "y":
+    if input("overwrite? [y/N] ").lower() != "y":
         print("not writing...")
         exit(-1)
 

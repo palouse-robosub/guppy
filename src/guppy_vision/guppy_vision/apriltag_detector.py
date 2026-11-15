@@ -13,12 +13,14 @@ from vision_msgs.msg import Point2D
 from guppy_msgs.msg import CornerDetection, CornerDetectionList
 
 bridge = CvBridge()
-detector = apriltag.Detector(apriltag.DetectorOptions(
-    families="tag36h11",
-    nthreads=4,
-    quad_decimate=2.0,
-    refine_edges=0,
-))
+detector = apriltag.Detector(
+    apriltag.DetectorOptions(
+        families="tag36h11",
+        nthreads=4,
+        quad_decimate=2.0,
+        refine_edges=0,
+    )
+)
 
 
 class AprilTagDetection(Node):
@@ -28,13 +30,20 @@ class AprilTagDetection(Node):
         self.declare_parameter("camera_name", "default_camera")
 
         self.subscription = self.create_subscription(
-            Image, "/cam/" + self.get_parameter("camera_name").value, self.callback, qos_profile_sensor_data
+            Image,
+            "/cam/" + self.get_parameter("camera_name").value,
+            self.callback,
+            qos_profile_sensor_data
         )
         self.annotation_publisher = self.create_publisher(
-            Image, "/cam/" + self.get_parameter("camera_name").value + "/annotated", qos_profile_sensor_data
+            Image,
+            "/cam/" + self.get_parameter("camera_name").value + "/annotated",
+            qos_profile_sensor_data
         )
         self.publisher = self.create_publisher(
-            CornerDetectionList, "/cam/" + self.get_parameter("camera_name").value + "/detections", 10
+            CornerDetectionList,
+            "/cam/" + self.get_parameter("camera_name").value + "/detections",
+            10
         )
 
     def callback(self, image):
