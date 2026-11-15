@@ -390,7 +390,7 @@
   <!-- THRUSTER OFFSET "-0.27819 0.24536 -0.019075" -->
     <plugin name="wasd_body_thrust_plugin" filename="libwasd_body_thrust_plugin.so">
       <link_name>base_link</link_name>
-      <motor_name>m6</motor_name>
+      <motor_name>m3</motor_name>
       <motor_speed_topic>/sim/motor_forces/m_3</motor_speed_topic>
       <lever>-1 -1 0</lever>      
       <theta>45</theta>
@@ -476,7 +476,7 @@
 
 
 
-<link name="camera_link">
+<link name="default_camera">
   <inertial>
     <origin xyz="0 0 0" rpy="0 0 0"/>
     <mass value="0"/>
@@ -493,335 +493,13 @@
     <origin xyz="0 0 0" rpy="0 0 0"/>
     <geometry><box size="0.10 0.06 0.04"/></geometry>
   </collision>
-
-  <!-- <visual name="camera_nose">
-    <origin xyz="0.10 0 0" rpy="0 0 0"/>
-    <geometry><box size="0.20 0.02 0.02"/></geometry>
-    <material name="opaque_red"/>
-  </visual>   -->
 </link>
-
-<joint name="camera_joint" type="fixed">
+<joint name="default_camera_joint" type="fixed">
   <parent link="base_link"/>
-  <child link="camera_link"/>
-  <origin xyz="0.00 0.20 0.10" rpy="0 0 1.57079632679"/>
+  <child link="default_camera"/>
+  <origin xyz="0.00 0.20 0.10" rpy="-1.5707 0 0"/>
 </joint>
 
-<link name="camera_optical_frame"/>
-<joint name="camera_optical_joint" type="fixed">
-  <parent link="camera_link"/>
-  <child link="camera_optical_frame"/>
-  <origin xyz="0 0 0" rpy="-1.57079632679 0 1.57079632679"/>
-</joint>
-
-
-<gazebo reference="camera_link">
-  <sensor name="rgbd_camera" type="rgbd_camera">
-    <always_on>true</always_on>
-    <update_rate>30</update_rate>
-    <visualize>true</visualize>
-
-    <!-- Base Gazebo Transport topic publishes
-         /guppy/camera/image
-         /guppy/camera/depth_image
-         /guppy/camera/points
-         /guppy/camera/camera_info -->
-    <topic>/guppy/camera</topic>
-
-    <camera>
-      <horizontal_fov>1.047</horizontal_fov>
-
-      <image>
-        <width>640</width>
-        <height>480</height>
-        <format>R8G8B8</format>
-      </image>
-
-      <clip>
-        <near>0.10</near>
-        <far>10.0</far>
-      </clip>
-
-      <depth_camera>
-        <clip>
-          <near>0.10</near>
-          <far>8.0</far>
-        </clip>
-      </depth_camera>
-
-      <optical_frame_id>camera_optical_frame</optical_frame_id>
-
-      <noise>
-        <type>gaussian</type>
-        <mean>0.0</mean>
-        <stddev>0.001</stddev>
-      </noise>
-    </camera>
-  </sensor>
-</gazebo>
-
-
-<!-- CORNER CAMERAS -->
-
-<link name="cam_fl_link">
-  <inertial>
-    <origin xyz="0 0 0" rpy="0 0 0"/>
-    <mass value="0"/>
-    <inertia ixx="1e-4" ixy="0" ixz="0" iyy="1e-4" iyz="0" izz="1e-4"/>
-  </inertial>
-
-  <!-- visible little box so you can see the camera body in Gazebo -->
-  <visual>
-    <origin xyz="0 0 0" rpy="0 0 0"/>
-    <geometry><box size="0.06 0.03 0.03"/></geometry>
-    <material name="black"/>
-  </visual>
-  <collision>
-    <origin xyz="0 0 0" rpy="0 0 0"/>
-    <geometry><box size="0.06 0.03 0.03"/></geometry>
-  </collision>
-</link>
-
-<joint name="cam_fl_joint" type="fixed">
-  <parent link="base_link"/>
-  <child link="cam_fl_link"/>
-  <!-- mount position + yaw(+45deg) -->
-  <origin xyz="0.25 0.18 0.10" rpy="0 0 0.78539816339"/>
-</joint>
-
-<!-- ROS optical frame (optional but recommended for RViz) -->
-<link name="cam_fl_optical_frame"/>
-<joint name="cam_fl_optical_joint" type="fixed">
-  <parent link="cam_fl_link"/>
-  <child link="cam_fl_optical_frame"/>
-  <!-- common camera_link -> optical transform (REP-103) -->
-  <origin xyz="0 0 0" rpy="-1.57079632679 0 -1.57079632679"/>
-</joint>
-
-<!-- Gazebo camera sensor -->
-<gazebo reference="cam_fl_link">
-  <sensor name="cam_fl" type="camera">
-    <always_on>true</always_on>
-    <update_rate>30</update_rate>
-    <visualize>true</visualize>
-
-    <!-- gz-transport base topic (FL)-->
-    <topic>/guppy/raw_1</topic>
-
-    <camera>
-      <horizontal_fov>1.047</horizontal_fov>
-      <image>
-        <width>640</width>
-        <height>480</height>
-        <format>R8G8B8</format>
-      </image>
-      <clip>
-        <near>0.10</near>
-        <far>30.0</far>
-      </clip>
-
-      <!-- only matters if you bridge to ROS and want correct frames -->
-      <optical_frame_id>cam_fl_optical_frame</optical_frame_id>
-    </camera>
-  </sensor>
-</gazebo>
-
-<link name="cam_fr_link">
-  <inertial>
-    <origin xyz="0 0 0" rpy="0 0 0"/>
-    <mass value="0"/>
-    <inertia ixx="1e-4" ixy="0" ixz="0" iyy="1e-4" iyz="0" izz="1e-4"/>
-  </inertial>
-
-  <visual>
-    <origin xyz="0 0 0" rpy="0 0 0"/>
-    <geometry><box size="0.06 0.03 0.03"/></geometry>
-    <material name="black"/>
-  </visual>
-  <collision>
-    <origin xyz="0 0 0" rpy="0 0 0"/>
-    <geometry><box size="0.06 0.03 0.03"/></geometry>
-  </collision>
-</link>
-
-<joint name="cam_fr_joint" type="fixed">
-  <parent link="base_link"/>
-  <child link="cam_fr_link"/>
-  <!-- mount position + yaw(-45deg) -->
-  <origin xyz="0.25 -0.18 0.10" rpy="0 0 -0.78539816339"/>
-</joint>
-
-<link name="cam_fr_optical_frame"/>
-<joint name="cam_fr_optical_joint" type="fixed">
-  <parent link="cam_fr_link"/>
-  <child link="cam_fr_optical_frame"/>
-  <!-- camera_link -> optical (REP-103-ish) -->
-  <origin xyz="0 0 0" rpy="-1.57079632679 0 -1.57079632679"/>
-</joint>
-
-<gazebo reference="cam_fr_link">
-  <sensor name="cam_fr" type="camera">
-    <always_on>true</always_on>
-    <update_rate>30</update_rate>
-    <visualize>true</visualize>
-    <!-- FR -->
-    <topic>/guppy/raw_2</topic> 
-
-    <camera>
-      <horizontal_fov>1.047</horizontal_fov>
-      <image>
-        <width>640</width>
-        <height>480</height>
-        <format>R8G8B8</format>
-      </image>
-      <clip>
-        <near>0.10</near>
-        <far>30.0</far>
-      </clip>
-
-      <optical_frame_id>cam_fr_optical_frame</optical_frame_id>
-    </camera>
-  </sensor>
-</gazebo>
-
-<link name="cam_rl_link">
-  <inertial>
-    <origin xyz="0 0 0" rpy="0 0 0"/>
-    <mass value="0"/>
-    <inertia ixx="1e-4" ixy="0" ixz="0" iyy="1e-4" iyz="0" izz="1e-4"/>
-  </inertial>
-
-  <visual>
-    <origin xyz="0 0 0" rpy="0 0 0"/>
-    <geometry><box size="0.06 0.03 0.03"/></geometry>
-    <material name="black"/>
-  </visual>
-  <collision>
-    <origin xyz="0 0 0" rpy="0 0 0"/>
-    <geometry><box size="0.06 0.03 0.03"/></geometry>
-  </collision>
-</link>
-
-<joint name="cam_rl_joint" type="fixed">
-  <parent link="base_link"/>
-  <child link="cam_rl_link"/>
-  <!-- mount position + yaw(+135deg) -->
-  <origin xyz="-0.25 0.18 0.10" rpy="0 0 2.35619449019"/>
-</joint>
-
-<link name="cam_rl_optical_frame"/>
-<joint name="cam_rl_optical_joint" type="fixed">
-  <parent link="cam_rl_link"/>
-  <child link="cam_rl_optical_frame"/>
-  <origin xyz="0 0 0" rpy="-1.57079632679 0 -1.57079632679"/>
-</joint>
-
-<gazebo reference="cam_rl_link">
-  <sensor name="cam_rl" type="camera">
-    <always_on>true</always_on>
-    <update_rate>30</update_rate>
-    <visualize>true</visualize>
-    <!-- RL -->
-    <topic>/guppy/raw_3</topic>
-
-    <camera>
-      <horizontal_fov>1.047</horizontal_fov>
-      <image>
-        <width>640</width>
-        <height>480</height>
-        <format>R8G8B8</format>
-      </image>
-      <clip>
-        <near>0.10</near>
-        <far>30.0</far>
-      </clip>
-
-      <optical_frame_id>cam_rl_optical_frame</optical_frame_id>
-    </camera>
-  </sensor>
-</gazebo>
-
-<link name="test">
-  <inertial>
-    <origin xyz="0 0 0" rpy="0 0 0"/>
-    <mass value="0"/>
-    <inertia ixx="1e-4" ixy="0" ixz="0" iyy="1e-4" iyz="0" izz="1e-4"/>
-  </inertial>
-
-  <visual>
-    <origin xyz="0 0 0" rpy="0 0 0"/>
-    <geometry><box size="0.06 0.03 0.03"/></geometry>
-    <material name="black"/>
-  </visual>
-  <collision>
-    <origin xyz="0 0 0" rpy="0 0 0"/>
-    <geometry><box size="0.06 0.03 0.03"/></geometry>
-  </collision>
-</link>
-
-<joint name="test_joint" type="fixed">
-  <parent link="base_link"/>
-  <child link="test"/>
-  <!-- mount position + yaw(-135deg) -->
-  <origin xyz="-0.10 +0.15 0.4" rpy="0 0 1.579"/>
-</joint>
-
-<link name="cam_rr_link">
-  <inertial>
-    <origin xyz="0 0 0" rpy="0 0 0"/>
-    <mass value="0"/>
-    <inertia ixx="1e-4" ixy="0" ixz="0" iyy="1e-4" iyz="0" izz="1e-4"/>
-  </inertial>
-
-  <visual>
-    <origin xyz="0 0 0" rpy="0 0 0"/>
-    <geometry><box size="0.06 0.03 0.03"/></geometry>
-    <material name="black"/>
-  </visual>
-  <collision>
-    <origin xyz="0 0 0" rpy="0 0 0"/>
-    <geometry><box size="0.06 0.03 0.03"/></geometry>
-  </collision>
-</link>
-
-<joint name="cam_rr_joint" type="fixed">
-  <parent link="base_link"/>
-  <child link="cam_rr_link"/>
-  <!-- mount position + yaw(-135deg) -->
-  <origin xyz="-0.25 -0.18 0.10" rpy="0 0 -2.35619449019"/>
-</joint>
-
-<link name="cam_rr_optical_frame"/>
-<joint name="cam_rr_optical_joint" type="fixed">
-  <parent link="cam_rr_link"/>
-  <child link="cam_rr_optical_frame"/>
-  <origin xyz="0 0 0" rpy="-1.57079632679 0 -1.57079632679"/>
-</joint>
-
-<gazebo reference="cam_rr_link">
-  <sensor name="cam_rr" type="camera">
-    <always_on>true</always_on>
-    <update_rate>30</update_rate>
-    <visualize>true</visualize>
-    <!-- RR -->
-    <topic>/guppy/raw_4</topic>
-
-    <camera>
-      <horizontal_fov>1.047</horizontal_fov>
-      <image>
-        <width>640</width>
-        <height>480</height>
-        <format>R8G8B8</format>
-      </image>
-      <clip>
-        <near>0.10</near>
-        <far>30.0</far>
-      </clip>
-
-      <optical_frame_id>cam_rr_optical_frame</optical_frame_id>
-    </camera>
-  </sensor>
-</gazebo>
 
 <!-- DVL link -->
 <link name="dvl_link">
@@ -848,54 +526,20 @@
     </geometry>
   </collision>
 </link>
-
-<!-- Fixed joint base_link -> dvl_link -->
 <joint name="dvl_joint" type="fixed">
   <parent link="base_link"/>
   <child link="dvl_link"/>
   <origin xyz="-0.2 0.0 -0.125" rpy="0 0 0"/>
 </joint>
-<!-- DVL sensor -->
 
-
-<!-- <gazebo reference="dvl_link">
-  <sensor name="dvl" type="custom" gz:type="dvl">
-    <always_on>true</always_on>
-    <update_rate>10</update_rate>
-    <topic>/guppy/dvl</topic>
-
-    <gz:dvl>
-      <arrangement degrees="true">
-        <beam id="1"><aperture>22.5</aperture><rotation>45</rotation><tilt>30</tilt></beam>
-        <beam id="2"><aperture>22.5</aperture><rotation>135</rotation><tilt>30</tilt></beam>
-        <beam id="3"><aperture>22.5</aperture><rotation>225</rotation><tilt>30</tilt></beam>
-        <beam id="4"><aperture>22.5</aperture><rotation>315</rotation><tilt>30</tilt></beam>
-        <visualize>true</visualize>
-      </arrangement>
-
-      <tracking>
-        <bottom_mode>
-          <when>always</when>
-          <noise type="gaussian"><stddev>1</stddev></noise>
-          <visualize>true</visualize>
-        </bottom_mode>
-      </tracking>
-
-      <minimum_range>0.05</minimum_range>
-      <maximum_range>50</maximum_range>
-      <resolution>0.0001</resolution>
-      <reference_frame>0 0 0 0 0 0</reference_frame>
-    </gz:dvl>
-  </sensor>
-</gazebo> -->
 <gazebo>
 <plugin
   filename="gz-sim-odometry-publisher-system"
   name="gz::sim::systems::OdometryPublisher">
   <odom_topic>/odom</odom_topic>
-  <odom_frame>world</odom_frame>
+  <odom_frame>odom</odom_frame>
   <dimensions>3</dimensions>
-  <publish_tf>true</publish_tf>
-  <robot_base_frame>dvl_link</robot_base_frame>
-</plugin></gazebo>
+  <robot_base_frame>base_link</robot_base_frame>
+  </plugin>
+  </gazebo>
 </robot>
