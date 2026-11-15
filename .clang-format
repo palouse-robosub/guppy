@@ -16,7 +16,7 @@ AlignConsecutiveDeclarations:
 AlignConsecutiveMacros:
   Enabled: true
   AlignCompound: true
-  AlignFunctionDeclarations: true 
+  AlignFunctionDeclarations: true
   AlignFunctionPointers: true
   PadOperators: true
 AlignConsecutiveShortCaseStatements:
