@@ -115,7 +115,7 @@ class ObjectDetection(Node):
 
                 try:
                     nsides = cv.approxPolyN(approx, 4)
-                except Exception as e:
+                except Exception as _:
                     continue
 
                 cntOffset = nsides + (x1_bound, y1_bound)

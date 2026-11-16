@@ -41,11 +41,10 @@ class SlamNode : public rclcpp::Node {
         tf_static_broadcaster_ =
             std::make_shared<tf2_ros::StaticTransformBroadcaster>(*this);
 
-        
         geometry_msgs::msg::TransformStamped t;
-        t.header.stamp = this->get_clock()->now();
+        t.header.stamp    = this->get_clock()->now();
         t.header.frame_id = "map";
-        t.child_frame_id = "odom";
+        t.child_frame_id  = "odom";
 
         t.transform.translation.x = 0.0;
         t.transform.translation.y = 0.0;
@@ -92,7 +91,7 @@ class SlamNode : public rclcpp::Node {
     void callback(guppy_msgs::msg::TransformList::UniquePtr msg) {
         // std::vector<tf2::Transform> potential_odoms;
         geometry_msgs::msg::TransformStamped tf_msg_map_odom =
-        tf_buffer_->lookupTransform("map", "odom", tf2::TimePointZero);
+            tf_buffer_->lookupTransform("map", "odom", tf2::TimePointZero);
 
         tf2::Transform tf_map_odom;
         tf2::fromMsg(tf_msg_map_odom.transform, tf_map_odom);
@@ -118,32 +117,46 @@ class SlamNode : public rclcpp::Node {
                 tf2::toMsg(tf_map_obj, tf_msg_map_obj.transform);
 
                 tf_static_broadcaster_->sendTransform(tf_msg_map_obj);
-            }
-            else if (historical_transforms[object_name].size() > SLAM_ITERATIONS_NEEDED) {
-                builtin_interfaces::msg::Time time = tf_msg_cam_obj.header.stamp;
+            } else if (
+                historical_transforms[object_name].size()
+                > SLAM_ITERATIONS_NEEDED
+            ) {
+                builtin_interfaces::msg::Time time =
+                    tf_msg_cam_obj.header.stamp;
 
                 geometry_msgs::msg::TransformStamped tf_msg_cam_obj_predicted =
-                        tf_buffer_->lookupTransform(camera_name, object_name, tf2::TimePointZero);
+                    tf_buffer_->lookupTransform(
+                        camera_name, object_name, tf2::TimePointZero
+                    );
 
                 tf2::Transform tf_cam_obj_predicted;
-                tf2::fromMsg(tf_msg_cam_obj_predicted.transform, tf_cam_obj_predicted);
+                tf2::fromMsg(
+                    tf_msg_cam_obj_predicted.transform, tf_cam_obj_predicted
+                );
 
                 tf2::Transform tf_cam_obj_actual;
                 tf2::fromMsg(tf_msg_cam_obj.transform, tf_cam_obj_actual);
 
-                tf2::Transform tf_diff = tf_cam_obj_predicted.inverseTimes(tf_cam_obj_actual);
+                tf2::Transform tf_diff =
+                    tf_cam_obj_predicted.inverseTimes(tf_cam_obj_actual);
 
-                RCLCPP_INFO(this->get_logger(), "difference for [%s] -> <x:\t %.2f,y:\t %.2f,z:\t %.2f>", object_name.c_str(), tf_diff.getOrigin().x(), tf_diff.getOrigin().y(), tf_diff.getOrigin().z());
+                RCLCPP_INFO(
+                    this->get_logger(),
+                    "difference for [%s] -> <x:\t %.2f,y:\t %.2f,z:\t %.2f>",
+                    object_name.c_str(), tf_diff.getOrigin().x(),
+                    tf_diff.getOrigin().y(), tf_diff.getOrigin().z()
+                );
 
                 // tf_map_odom *= tf_diff;
-            }
-            else {
+            } else {
                 builtin_interfaces::msg::Time time =
                     tf_msg_cam_obj.header.stamp;
 
                 try {
                     geometry_msgs::msg::TransformStamped tf_msg_map_cam =
-                        tf_buffer_->lookupTransform("map", camera_name, tf2::TimePointZero);
+                        tf_buffer_->lookupTransform(
+                            "map", camera_name, tf2::TimePointZero
+                        );
 
                     tf2::Transform tf_map_cam;
                     tf2::fromMsg(tf_msg_map_cam.transform, tf_map_cam);
@@ -155,7 +168,11 @@ class SlamNode : public rclcpp::Node {
 
                     historical_transforms[object_name].push_back(tf_map_obj);
 
-                    RCLCPP_INFO(this->get_logger(), "incrementing object %s to %d", object_name.c_str(), historical_transforms[object_name].size());
+                    RCLCPP_INFO(
+                        this->get_logger(), "incrementing object %s to %d",
+                        object_name.c_str(),
+                        historical_transforms[object_name].size()
+                    );
 
                     // tf_broadcaster_->sendTransform(tf_msg_cam_obj);
                 } catch (const tf2::TransformException& ex) {
