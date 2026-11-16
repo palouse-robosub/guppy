@@ -117,10 +117,8 @@ class SlamNode : public rclcpp::Node {
                 tf2::toMsg(tf_map_obj, tf_msg_map_obj.transform);
 
                 tf_static_broadcaster_->sendTransform(tf_msg_map_obj);
-            } else if (
-                historical_transforms[object_name].size()
-                > SLAM_ITERATIONS_NEEDED
-            ) {
+            } else if (historical_transforms[object_name].size()
+                       > SLAM_ITERATIONS_NEEDED) {
                 builtin_interfaces::msg::Time time =
                     tf_msg_cam_obj.header.stamp;
 
