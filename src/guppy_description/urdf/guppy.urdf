@@ -62,19 +62,19 @@
 
   <link name="thruster0M_link">
     <inertial>
-      <origin xyz="-0.0060486 0 -0.0006157" rpy="0 0 0"/>
+      <origin xyz="-0.0060486 0 -0.0006157" rpy="3.1415 0 0"/>
       <mass value="0"/>
       <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
     </inertial>
     <visual>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <origin xyz="0 0 0" rpy="3.1415 0 0"/>
       <geometry>
         <mesh filename="package://guppy_description/meshes/thruster0M_link.STL"/>
       </geometry>
       <material name="opaque_red"/>
     </visual>
     <collision>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <origin xyz="0 0 0" rpy="3.1415 0 0"/>
       <geometry>
         <mesh filename="package://guppy_description/meshes/thruster0M_link.STL"/>
       </geometry>
@@ -116,19 +116,19 @@
 
   <link name="thruster1M_link">
     <inertial>
-      <origin xyz="-0.0060486 0 -0.0006157" rpy="0 0 0"/>
+      <origin xyz="-0.0060486 0 -0.0006157" rpy="1.5708 0 0"/>
       <mass value="0"/>
       <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
     </inertial>
     <visual>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
       <geometry>
         <mesh filename="package://guppy_description/meshes/thruster1M_link.STL"/>
       </geometry>
       <material name="opaque_red"/>
     </visual>
     <collision>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
       <geometry>
         <mesh filename="package://guppy_description/meshes/thruster1M_link.STL"/>
       </geometry>
@@ -224,19 +224,19 @@
 
   <link name="thruster3M_link">
     <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <origin xyz="0 0 0" rpy="-1.5708 0 0"/>
       <mass value="0"/>
       <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
     </inertial>
     <visual>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <origin xyz="0 0 0" rpy="-1.5708 0 0"/>
       <geometry>
         <mesh filename="package://guppy_description/meshes/thruster3M_link.STL"/>
       </geometry>
       <material name="opaque_red"/>
     </visual>
     <collision>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <origin xyz="0 0 0" rpy="-1.5708 0 0"/>
       <geometry>
         <mesh filename="package://guppy_description/meshes/thruster3M_link.STL"/>
       </geometry>
