@@ -1,7 +1,7 @@
 usb_camera_publisher:
   ros__parameters:
     camera_name: logitech_usb_brio
-    camera_index: 2
+    camera_index: 0
     camera_model_last_calibrated: '2026-11-15T14:38:37.525252'
     camera_model_n_calibration_images: 50
     camera_model_d:

@@ -71,6 +71,7 @@ class CombineSensors : public rclcpp::Node {
     ) {
         odom.pose.pose.position.z = msg->pose.pose.position.z - initial_pose.z;
 
+        odom.header.stamp = this->get_clock()->now();
         odom_pub_->publish(odom);
 
         publish_transform();
@@ -112,7 +113,7 @@ class CombineSensors : public rclcpp::Node {
 
         odom.pose.pose.position.x = corrected_position.x() - initial_pose.x;
         odom.pose.pose.position.y = corrected_position.y() - initial_pose.y;
-        odom.pose.pose.position.z = corrected_position.z() - initial_pose.z;
+        // odom.pose.pose.position.z = corrected_position.z() - initial_pose.z;
 
         // Lever arm velocity correction
         Eigen::Vector3d omega(
@@ -126,6 +127,7 @@ class CombineSensors : public rclcpp::Node {
         odom.twist.twist.linear.y = corrected_twist.y();
         odom.twist.twist.linear.z = corrected_twist.z();
 
+        odom.header.stamp = this->get_clock()->now();
         odom_pub_->publish(odom);
         publish_transform();
     }
@@ -161,6 +163,8 @@ class CombineSensors : public rclcpp::Node {
         odom.twist.twist.angular.x   = twist[0];
         odom.twist.twist.angular.y   = twist[1];
         odom.twist.twist.angular.z   = twist[2];
+
+        odom.header.stamp = this->get_clock()->now();
         odom_pub_->publish(odom);
 
         publish_transform();

@@ -1,5 +1,5 @@
 <launch>
     <include file="$(find-pkg-share guppy_vision)/launch/camera.xml">
-        <arg name="camera" value="default_camera" />
+        <arg name="camera" value="logitech_usb_brio" />
     </include>
 </launch>
