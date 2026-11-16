@@ -139,12 +139,11 @@ class ControlChassis : public rclcpp::Node {
                                                                 // transformed
                                                                 // type
 
-                        if constexpr (
-                            std::is_same_v<P, R>
-                        ) {    // ensure transformed type
-                               // and type at pointer are
-                               // the same (so you don't
-                               // set bad data)
+                        if constexpr (std::is_same_v<
+                                          P, R>) {    // ensure transformed type
+                                                      // and type at pointer are
+                                                      // the same (so you don't
+                                                      // set bad data)
                             std::string before, after;
                             before = printer_it->second(
                                 static_cast<const void*>(pointer)
