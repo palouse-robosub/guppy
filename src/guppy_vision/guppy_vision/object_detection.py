@@ -112,7 +112,11 @@ class ObjectDetection(Node):
                 approx = cv.approxPolyDP(c, 0.04 * peri, True)
                 if len(approx) < 4:
                     continue
-                nsides = cv.approxPolyN(approx, 4)
+
+                try:
+                    nsides = cv.approxPolyN(approx, 4)
+                except Exception as e:
+                    continue
 
                 cntOffset = nsides + (x1_bound, y1_bound)
 

@@ -476,7 +476,7 @@
 
 
 
-<link name="default_camera">
+<link name="logitech_usb_brio">
   <inertial>
     <origin xyz="0 0 0" rpy="0 0 0"/>
     <mass value="0"/>
@@ -494,9 +494,9 @@
     <geometry><box size="0.10 0.06 0.04"/></geometry>
   </collision>
 </link>
-<joint name="default_camera_joint" type="fixed">
+<joint name="logitech_usb_brio_joint" type="fixed">
   <parent link="base_link"/>
-  <child link="default_camera"/>
+  <child link="logitech_usb_brio"/>
   <origin xyz="0.00 0.20 0.10" rpy="-1.5707 0 0"/>
 </joint>
 
