@@ -73,7 +73,7 @@ class ControlChassis : public rclcpp::Node {
         ChassisController::ChassisControllerParams parameters;
 
         load_params_(&parameters);    // load parameters from configuration file
-        print_params_();
+        // print_params_();
 
         this->param_subscriber_ =
             std::make_shared<rclcpp::ParameterEventHandler>(
@@ -206,17 +206,18 @@ class ControlChassis : public rclcpp::Node {
         tf_listener = std::make_unique<tf2_ros::TransformListener>(*tf_buffer);
 
         std::vector<std::string> motor_links = {
-            "thruster2C_link", "thruster2M_link", "thruster3C_link",
-            "thruster3M_link", "thruster0C_link", "thruster0M_link",
-            "thruster1C_link", "thruster1M_link"
+            "thruster0C_link", "thruster1C_link", "thruster2C_link",
+            "thruster3C_link", "thruster0M_link", "thruster1M_link",
+            "thruster2M_link", "thruster3M_link"
         };
 
         Eigen::Matrix<double, 6, N_MOTORS> motor_coefficients =
             Eigen::Matrix<double, 6, N_MOTORS>::Zero();
 
-        for (std::string& target : motor_links) {
+        for (int i = 0; i < N_MOTORS; ++i) {
+            auto target = motor_links[i];
             if (!tf_buffer->canTransform(
-                    target, "base_link", tf2::TimePointZero,
+                    "base_link", target, tf2::TimePointZero,
                     tf2::durationFromSec(5.0)
                 )) {
                 RCLCPP_FATAL(
@@ -230,29 +231,34 @@ class ControlChassis : public rclcpp::Node {
             auto t = tf_buffer->lookupTransform(
                 "base_link", target, tf2::TimePointZero
             );
+
+            Eigen::Matrix<double, 6, 1> single_coeffs;
+
+            Eigen::Vector3d local_thrust_axis(1, 0, 0);
+
+            Eigen::Vector3d pos(
+                t.transform.translation.x, t.transform.translation.y,
+                t.transform.translation.z
+            );
+
+            // std::cout << pos << std::endl;
+
             Eigen::Quaterniond quat(
                 t.transform.rotation.w, t.transform.rotation.x,
                 t.transform.rotation.y, t.transform.rotation.z
             );
 
-            auto euler = quat.toRotationMatrix().eulerAngles(0, 1, 2);
+            Eigen::Vector3d global_thrust_axis = quat * local_thrust_axis;
 
-            constexpr double r2d = 180 / M_PI;
+            Eigen::Vector3d torque = pos.cross(global_thrust_axis);
 
-            euler *= r2d;
+            single_coeffs << global_thrust_axis.x(), global_thrust_axis.y(),
+                global_thrust_axis.z(), torque.x(), torque.y(), torque.z();
 
-            std::cout << euler << std::endl;
-            RCLCPP_INFO(
-                this->get_logger(),
-                "Motor transform:\n"
-                "  Translation: [x: %.4f, y: %.4f, z: %.4f]\n"
-                "  Rotation:    [x: %.4f, y: %.4f, z: %.4f, w: %.4f]",
-                t.transform.translation.x, t.transform.translation.y,
-                t.transform.translation.z, t.transform.rotation.x,
-                t.transform.rotation.y, t.transform.rotation.z,
-                t.transform.rotation.w
-            );
+            motor_coefficients.col(i) = single_coeffs;
         }
+        std::cout << "from tf2:" << std::endl;
+        std::cout << motor_coefficients << std::endl;
 
         // setup motor publishers for sim
         for (int i = 0; i < 8; i++) {
@@ -744,6 +750,9 @@ class ControlChassis : public rclcpp::Node {
             const double theta = flat5N[5 * i + 4];
             M.col(i) = get_single_motor_coefficients(x, y, z, phi, theta);
         }
+
+        std::cout << "from yaml:" << std::endl;
+        std::cout << M << std::endl;
 
         return M;
     }
