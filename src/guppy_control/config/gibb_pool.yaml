@@ -11,6 +11,8 @@ control_chassis:
        -0.290,    0.0,      -0.0243,   -90.0,      0.0,
         0.0,      0.2649,   -0.0243,   -90.0,      0.0,
     ] # flattend 5 * 8 matrix
+    base_frame: "base_link"
+    motor_links: [ "thruster2C_link", "thruster2M_link", "thruster3C_link", "thruster3M_link", "thruster0C_link", "thruster0M_link", "thruster1C_link", "thruster1M_link" ]
     motor_lower_bounds: [ -49.42552, -49.42552, -49.42552, -49.42552, -49.42552, -49.42552, -49.42552, -49.42552 ]
     motor_upper_bounds: [ 64.23356, 64.23356, 64.23356, 64.23356, 64.23356, 64.23356, 64.23356, 64.23356 ]
     axis_weight_matrix: [

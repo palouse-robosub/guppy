@@ -1,12 +1,21 @@
+#include "geometry_msgs/msg/transform_stamped.hpp"
 #include "guppy_control/chassis_controller.hpp"
 #include "guppy_control/t200_interface.hpp"
 #include "rclcpp/rclcpp.hpp"
+#include <Eigen/src/Core/Matrix.h>
+#include <Eigen/src/Geometry/Quaternion.h>
+#include <memory>
 #include <rclcpp/subscription.hpp>
+#include <string>
+#include <vector>
 
 #include "guppy_msgs/msg/state.hpp"
 #include "guppy_msgs/srv/set_hold_pose.hpp"
 #include "std_msgs/msg/float32.hpp"
 #include "std_msgs/msg/float64.hpp"
+
+#include "tf2_ros/buffer.hpp"
+#include "tf2_ros/transform_listener.hpp"
 
 using namespace std::chrono_literals;
 using namespace t200_interface;
@@ -64,6 +73,7 @@ class ControlChassis : public rclcpp::Node {
         ChassisController::ChassisControllerParams parameters;
 
         load_params_(&parameters);    // load parameters from configuration file
+        // print_params_();
 
         this->param_subscriber_ =
             std::make_shared<rclcpp::ParameterEventHandler>(
@@ -192,6 +202,64 @@ class ControlChassis : public rclcpp::Node {
         controller =
             new ChassisController(parameters, thruster_interface, 100000);
 
+        tf_buffer   = std::make_unique<tf2_ros::Buffer>(this->get_clock());
+        tf_listener = std::make_unique<tf2_ros::TransformListener>(*tf_buffer);
+
+        std::vector<std::string> motor_links = {
+            "thruster0C_link", "thruster1C_link", "thruster2C_link",
+            "thruster3C_link", "thruster0M_link", "thruster1M_link",
+            "thruster2M_link", "thruster3M_link"
+        };
+
+        Eigen::Matrix<double, 6, N_MOTORS> motor_coefficients =
+            Eigen::Matrix<double, 6, N_MOTORS>::Zero();
+
+        for (int i = 0; i < N_MOTORS; ++i) {
+            auto target = motor_links[i];
+            if (!tf_buffer->canTransform(
+                    "base_link", target, tf2::TimePointZero,
+                    tf2::durationFromSec(5.0)
+                )) {
+                RCLCPP_FATAL(
+                    get_logger(),
+                    "TF base_link -> %s not available \n"
+                    "Unable to determine position of motors - exiting",
+                    target.c_str()
+                );
+                return;
+            }
+            auto t = tf_buffer->lookupTransform(
+                "base_link", target, tf2::TimePointZero
+            );
+
+            Eigen::Matrix<double, 6, 1> single_coeffs;
+
+            Eigen::Vector3d local_thrust_axis(1, 0, 0);
+
+            Eigen::Vector3d pos(
+                t.transform.translation.x, t.transform.translation.y,
+                t.transform.translation.z
+            );
+
+            // std::cout << pos << std::endl;
+
+            Eigen::Quaterniond quat(
+                t.transform.rotation.w, t.transform.rotation.x,
+                t.transform.rotation.y, t.transform.rotation.z
+            );
+
+            Eigen::Vector3d global_thrust_axis = quat * local_thrust_axis;
+
+            Eigen::Vector3d torque = pos.cross(global_thrust_axis);
+
+            single_coeffs << global_thrust_axis.x(), global_thrust_axis.y(),
+                global_thrust_axis.z(), torque.x(), torque.y(), torque.z();
+
+            motor_coefficients.col(i) = single_coeffs;
+        }
+        std::cout << "from tf2:" << std::endl;
+        std::cout << motor_coefficients << std::endl;
+
         // setup motor publishers for sim
         for (int i = 0; i < 8; i++) {
             sim_motor_publishers_[i] =
@@ -292,6 +360,9 @@ class ControlChassis : public rclcpp::Node {
     rclcpp::Subscription<guppy_msgs::msg::State>::SharedPtr state_subscription_;
     rclcpp::TimerBase::SharedPtr                            timer_;
     rclcpp::Service<guppy_msgs::srv::SetHoldPose>::SharedPtr reset_service;
+
+    std::unique_ptr<tf2_ros::Buffer>            tf_buffer;
+    std::unique_ptr<tf2_ros::TransformListener> tf_listener;
 
     std::shared_ptr<rclcpp::ParameterEventHandler> param_subscriber_;
     std::shared_ptr<rclcpp::ParameterEventCallbackHandle>
@@ -679,6 +750,9 @@ class ControlChassis : public rclcpp::Node {
             const double theta = flat5N[5 * i + 4];
             M.col(i) = get_single_motor_coefficients(x, y, z, phi, theta);
         }
+
+        std::cout << "from yaml:" << std::endl;
+        std::cout << M << std::endl;
 
         return M;
     }
