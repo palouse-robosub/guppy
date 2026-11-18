@@ -118,7 +118,7 @@ class UpdateTargetVector :
 
             setOutput("target_pose", out);
 
-            // Print so you can see it work in the terminal!
+            // Print info
             RCLCPP_INFO(
                 logger(), "UpdateTargetVector: target at (%.2f, %.2f, %.2f)",
                 out.position.x, out.position.y, out.position.z
@@ -181,7 +181,7 @@ class UpdateTargetVector :
                 q_curr.normalize();
                 q_ema.normalize();
 
-                // SLERP fix: Ensure we take the shortest path
+                // Ensures on taking the shortest path
                 if (q_ema.dot(q_curr) < 0.0)
                     q_curr.coeffs() *= -1.0;
 
