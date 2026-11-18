@@ -7,6 +7,7 @@
 #include <geometry_msgs/msg/pose.hpp>
 #include <optional>
 #include <string>
+#include <tf2_eigen/tf2_eigen.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
@@ -68,6 +69,7 @@ class UpdateTargetVector :
         getInput("timeout", timeout);
         getInput("max_rejects", max_rejects);
         const auto now = node_->get_clock()->now();
+
         // 1) Processes a new message in the WORLD frame.
         if (msg) {
             for (const auto& t : msg->transforms) {
@@ -97,24 +99,31 @@ class UpdateTargetVector :
             auto tf_w_b = tf_buffer_->lookupTransform(
                 world_frame, base_frame, tf2::TimePointZero
             );
-            Eigen::Isometry3d T_w_b;
-            tf2::fromMsg(tf_w_b.transform, T_w_b);
+            Eigen::Isometry3d T_w_b = tf2::transformToEigen(tf_w_b.transform);
+
             // Base -> Target = (World -> Base)^-1 * (World -> Target)
-            Eigen::Isometry3d        T_b_t = T_w_b.inverse() * (*ema_w_);
+            Eigen::Isometry3d T_b_t = T_w_b.inverse() * (*ema_w_);
+
             geometry_msgs::msg::Pose out;
             out.position.x = T_b_t.translation().x();
             out.position.y = T_b_t.translation().y();
             out.position.z = T_b_t.translation().z();
 
             Eigen::Quaterniond q(T_b_t.linear());
-            q.normalize();    // should help in guarding against drift from
-                              // repeated SLERP
+            q.normalize();
             out.orientation.w = q.w();
             out.orientation.x = q.x();
             out.orientation.y = q.y();
             out.orientation.z = q.z();
 
             setOutput("target_pose", out);
+
+            // Print so you can see it work in the terminal!
+            RCLCPP_INFO(
+                logger(), "UpdateTargetVector: target at (%.2f, %.2f, %.2f)",
+                out.position.x, out.position.y, out.position.z
+            );
+
             return BT::NodeStatus::SUCCESS;
         } catch (const tf2::TransformException& ex) {
             RCLCPP_WARN(
@@ -125,13 +134,11 @@ class UpdateTargetVector :
     }
 
   private:
-    // Returns true only if the filter was successfully updated
     bool processMeasurement(
         const geometry_msgs::msg::TransformStamped& tag_cam,
         const std::string& camera_frame, const std::string& world_frame,
         double gate_radius, double alpha, int max_rejects
     ) {
-        // Raw detect validation
         const auto&  r  = tag_cam.transform.rotation;
         const auto&  tr = tag_cam.transform.translation;
         const double qn =
@@ -144,18 +151,13 @@ class UpdateTargetVector :
             return false;
         }
         try {
-            // Uses detection's stamp to time align the camera pose with the
-            // image that produced it.
             const auto stamp = tag_cam.header.stamp;
             auto       tf_w_c =
                 tf_buffer_->lookupTransform(world_frame, camera_frame, stamp);
 
-            Eigen::Isometry3d T_w_c = Eigen::Isometry3d::Identity();
-            Eigen::Isometry3d T_c_t = Eigen::Isometry3d::Identity();
-            tf2::fromMsg(tf_w_c.transform, T_w_c);
-            tf2::fromMsg(tag_cam.transform, T_c_t);
+            Eigen::Isometry3d T_w_c = tf2::transformToEigen(tf_w_c.transform);
+            Eigen::Isometry3d T_c_t = tf2::transformToEigen(tag_cam.transform);
 
-            // World -> Target
             const Eigen::Isometry3d T_w_t = T_w_c * T_c_t;
 
             if (!ema_w_) {
@@ -175,13 +177,20 @@ class UpdateTargetVector :
 
                 Eigen::Quaterniond q_curr(T_w_t.linear());
                 Eigen::Quaterniond q_ema(ema_w_->linear());
+
+                q_curr.normalize();
+                q_ema.normalize();
+
+                // SLERP fix: Ensure we take the shortest path
+                if (q_ema.dot(q_curr) < 0.0)
+                    q_curr.coeffs() *= -1.0;
+
                 ema_w_->linear() =
                     q_ema.slerp(alpha, q_curr).toRotationMatrix();
-
                 consecutive_rejects_ = 0;
                 return true;
             }
-            // Recovery of gate lockout
+
             ++consecutive_rejects_;
             if (consecutive_rejects_ >= max_rejects) {
                 RCLCPP_WARN(
@@ -217,4 +226,3 @@ class UpdateTargetVector :
     std::optional<rclcpp::Time>                 last_seen_;
     int                                         consecutive_rejects_ = 0;
 };
-
