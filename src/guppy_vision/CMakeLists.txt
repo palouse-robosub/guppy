@@ -25,16 +25,13 @@ find_package(image_transport REQUIRED)
 add_executable(usb_camera_publisher src/usb_camera_publisher.cpp)
 add_executable(pnp src/pnp.cpp)
 add_executable(slam src/slam.cpp)
-add_executable(aprilrepub src/april.cpp)
 
 ament_target_dependencies(usb_camera_publisher rclcpp sensor_msgs cv_bridge OpenCV image_transport)
-ament_target_dependencies(aprilrepub rclcpp sensor_msgs cv_bridge OpenCV image_transport)
 ament_target_dependencies(pnp rclcpp guppy_msgs sensor_msgs cv_bridge OpenCV Eigen3)
 ament_target_dependencies(slam rclcpp nav_msgs guppy_msgs sensor_msgs Eigen3 tf2_geometry_msgs tf2 tf2_ros)
 
 install(TARGETS
   usb_camera_publisher
-  aprilrepub
   pnp
   slam
   
@@ -58,6 +55,11 @@ install(DIRECTORY launch
 # Install resources
 install(DIRECTORY resource
   DESTINATION share/${PROJECT_NAME}
+)
+
+# Camera calibration/config files
+install(DIRECTORY calib
+  DESTINATION share/${PROJECT_NAME}/
 )
 
 if(BUILD_TESTING)

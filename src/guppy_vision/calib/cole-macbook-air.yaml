@@ -1,0 +1,22 @@
+usb_camera_publisher:
+  ros__parameters:
+    camera_name: cole-macbook-air
+    camera_index: 0
+    camera_model_last_calibrated: '2026-11-06T11:48:47.359210'
+    camera_model_num_calibration_img: 0
+    camera_model_d:
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+    camera_model_k:
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+    - 6
+    - 7
+    - 8
+    - 9

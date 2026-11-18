@@ -13,29 +13,47 @@ from vision_msgs.msg import Point2D
 from guppy_msgs.msg import CornerDetection, CornerDetectionList
 
 bridge = CvBridge()
-detector = apriltag.Detector()
+detector = apriltag.Detector(
+    apriltag.DetectorOptions(
+        families="tag36h11",
+        nthreads=4,
+        quad_decimate=2.0,
+        refine_edges=0,
+    )
+)
 
 
 class AprilTagDetection(Node):
     def __init__(self):
         super().__init__("apriltag_detector")
+
+        self.declare_parameter("camera_name", "default_camera")
+
         self.subscription = self.create_subscription(
-            Image, "/cam/test", self.callback, qos_profile_sensor_data
+            Image,
+            "/cam/" + self.get_parameter("camera_name").value,
+            self.callback,
+            qos_profile_sensor_data,
         )
         self.annotation_publisher = self.create_publisher(
-            Image, "/cam/test_annotated", qos_profile_sensor_data
+            Image,
+            "/cam/" + self.get_parameter("camera_name").value + "/annotated",
+            qos_profile_sensor_data,
         )
         self.publisher = self.create_publisher(
-            CornerDetectionList, "/cam/test/detections", 10
+            CornerDetectionList,
+            "/cam/" + self.get_parameter("camera_name").value + "/detections",
+            10,
         )
 
     def callback(self, image):
         img_o = bridge.imgmsg_to_cv2(image)
-        img_o[:, :, 0] *= 1
-        img_o[:, :, 1] *= 1
-        img_o[:, :, 2] *= 1
+        # img_o[:, :, 0] *= 1
+        # img_o[:, :, 1] *= 1
+        # img_o[:, :, 2] *= 1
 
         img = cv2.cvtColor(img_o, cv2.COLOR_BGR2GRAY)
+        # img = cv2.resize(img, (854, 480), interpolation=cv2.INTER_AREA)
         results = detector.detect(img)
 
         msg = CornerDetectionList()
@@ -72,15 +90,7 @@ class AprilTagDetection(Node):
 
         # annotate...
         anno = img
-        cv2.putText(
-            anno,
-            "WORK PLEAS EPWQOHJKH",
-            (50, 50),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            1,
-            (0, 0, 255),
-            4,
-        )
+
         for r in results:
             ptA, ptB, ptC, ptD = r.corners
             ptB = (int(ptB[0]), int(ptB[1]))

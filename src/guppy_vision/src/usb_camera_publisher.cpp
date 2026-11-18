@@ -9,6 +9,7 @@
 #include <memory>
 #include <rclcpp/node.hpp>
 #include <string>
+#include <vector>
 
 using namespace std::chrono_literals;
 
@@ -22,12 +23,26 @@ class USBCameraPublisher : public rclcpp::Node {
 
     USBCameraPublisher() : Node("usb_camera_publisher") {
         this->declare_parameter("camera_index", 0);
-        this->declare_parameter("topic_name", "testing");
-        int idx = this->get_parameter("camera_index").as_int();
-        camera.open(idx);
-        std::string topic = this->get_parameter("topic_name").as_string();
+        this->declare_parameter("camera_name", "default_camera");
+        this->declare_parameter<std::vector<double>>(
+            "camera_model_d", std::vector<double>(5, 0.0)
+        );
+        this->declare_parameter<std::vector<double>>(
+            "camera_model_k", std::vector<double>(9, 0.0)
+        );
+
+        int         camera_index = this->get_parameter("camera_index").as_int();
+        std::string camera_name =
+            this->get_parameter("camera_name").as_string();
+
+        RCLCPP_INFO(
+            this->get_logger(), "Loading camera_index=%d", camera_index
+        );
+
+        camera.open(camera_index);
+
         info_pub_ = this->create_publisher<sensor_msgs::msg::CameraInfo>(
-            std::string("/cam/") + topic + "/camera_info", 1
+            std::string("/cam/") + camera_name + "/camera_info", 1
         );
         timer_ = this->create_wall_timer(
             50ms, std::bind(&USBCameraPublisher::timer_callback, this)
@@ -43,9 +58,10 @@ class USBCameraPublisher : public rclcpp::Node {
         it_ = std::make_unique<image_transport::ImageTransport>(
             shared_from_this()
         );
-        std::string topic = this->get_parameter("topic_name").as_string();
-        image_pub_        = it_->advertise(
-            "/cam/" + topic, rclcpp::SensorDataQoS().get_rmw_qos_profile()
+        std::string camera_name =
+            this->get_parameter("camera_name").as_string();
+        image_pub_ = it_->advertise(
+            "/cam/" + camera_name, rclcpp::SensorDataQoS().get_rmw_qos_profile()
         );
     }
 
@@ -56,7 +72,7 @@ class USBCameraPublisher : public rclcpp::Node {
 
         rclcpp::Time          now = this->get_clock()->now();
         std_msgs::msg::Header header;
-        header.frame_id = "test";
+        header.frame_id = this->get_parameter("camera_name").as_string();
         header.stamp    = now;
 
         msg_ = cv_bridge::CvImage(header, "bgr8", image).toImageMsg();
@@ -65,19 +81,19 @@ class USBCameraPublisher : public rclcpp::Node {
         sensor_msgs::msg::CameraInfo info;
         info.height           = image.rows;
         info.width            = image.cols;
-        info.distortion_model = "opencv(?)";
-        info.d                = { 0.11278175177017583, -0.2634338012261266,
-                                  -0.004302324657789871, 0.0007975991434697732,
-                                  0.16261327039070175 };
-        info.k                = { 556.6559171023735,
-                                  0.0,
-                                  329.6728647483841,
-                                  0.0,
-                                  556.1111124909132,
-                                  240.66490808614884,
-                                  0.0,
-                                  0.0,
-                                  1.0 };
+        info.distortion_model = "plumb_bob";    // ...I think... --cole
+
+        auto k_vector = this->get_parameter("camera_model_k").as_double_array();
+        if (k_vector.size() == 9) {
+            std::copy(k_vector.begin(), k_vector.end(), info.k.begin());
+        } else {
+            RCLCPP_ERROR(
+                this->get_logger(),
+                "Parameter 'camera_model_k' must have exactly 9 elements."
+            );
+        }
+
+        info.d = this->get_parameter("camera_model_d").as_double_array();
 
         info_pub_->publish(info);
     }

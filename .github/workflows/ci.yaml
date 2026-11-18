@@ -5,6 +5,7 @@ on:
     branches: ["main"]
   pull_request:
     branches: ["**"]
+  workflow_dispatch:
 
 permissions:
   checks: write
@@ -99,7 +100,7 @@ jobs:
   build_and_test_ros2:
     name: Build and Test ROS / Lint
     needs: [lint, commit_names, get_changes]
-    if: needs.get_changes.outputs.code == 'true'
+    if: ${{ !cancelled() && (needs.get_changes.outputs.code == 'true' || github.ref_name == 'main') }}
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout guppy
@@ -108,6 +109,9 @@ jobs:
           fetch-depth: 2
           submodules: recursive
           token: ${{ secrets.SUBMODULE_PAT }}
+
+      - name: Install & setup VCAN
+        run: .github/workflows/can_install.sh
 
       - name: Install Determinate Nix
         uses: DeterminateSystems/nix-installer-action@main
@@ -164,6 +168,7 @@ jobs:
         run: nix develop --accept-flake-config --command bash -c "colcon build"
 
       - name: Save Vendor
+        if: steps.cache-vendor-restore.outputs.cache-hit != 'true'
         id: cache-vendor-save
         uses: actions/cache/save@v6
         with:

@@ -27,8 +27,8 @@ class ObjectDetection(Node):
         )
         self.bridge = CvBridge()
 
-        self.declare_parameter("camera_name", "test")
-        self.declare_parameter("expansion_ratio", "0.3")
+        self.declare_parameter("camera_name", "default_camera")
+        self.declare_parameter("expansion_ratio", 0.3)
 
         camera_name = (
             self.get_parameter("camera_name").get_parameter_value().string_value
@@ -41,10 +41,10 @@ class ObjectDetection(Node):
             qos_profile_sensor_data,
         )
         self.pub = self.create_publisher(
-            CornerDetectionList, "/cam/test/detections", 10
+            CornerDetectionList, f"/cam/{camera_name}/detections", 10
         )
         self.anno_pub = self.create_publisher(
-            Image, "/cam/test/anno", qos_profile_sensor_data
+            Image, f"/cam/{camera_name}/annotated", qos_profile_sensor_data
         )
 
         self.box_annotator = sv.BoxAnnotator()
@@ -101,6 +101,9 @@ class ObjectDetection(Node):
                     mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE
                 )
 
+                if not cnts:
+                    continue
+
                 # grab biggest contour
                 c = max(cnts, key=cv.contourArea)
                 peri = cv.arcLength(c, True)
@@ -109,7 +112,11 @@ class ObjectDetection(Node):
                 approx = cv.approxPolyDP(c, 0.04 * peri, True)
                 if len(approx) < 4:
                     continue
-                nsides = cv.approxPolyN(approx, 4)
+
+                try:
+                    nsides = cv.approxPolyN(approx, 4)
+                except Exception as _:
+                    continue
 
                 cntOffset = nsides + (x1_bound, y1_bound)
 
