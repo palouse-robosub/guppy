@@ -3,12 +3,14 @@
     <arg name="controller_debug" default="false" />
     <!-- to launch with controller debugging enabled use 'ros2 launch guppy sim.xml controller_debug:=true' -->
 
+    <!-- moved to top to ensure tf node starts before nodes that depend on it -->
+    <include file="$(find-pkg-share guppy_description)/launch/sim.xml" />
+
     <include file="$(find-pkg-share guppy_control)/launch/sim.xml">
         <arg name="controller_debug" value="$(var controller_debug)" />
     </include>
     <include file="$(find-pkg-share guppy_can)/launch/sim.xml" />
     <include file="$(find-pkg-share guppy_localization)/launch/sim.xml" />
-    <include file="$(find-pkg-share guppy_description)/launch/sim.xml" />
     <include file="$(find-pkg-share guppy_state)/launch/sim.xml" />
     <include file="$(find-pkg-share guppy_vision)/launch/sim.xml" />
     <include file="$(find-pkg-share guppy_nav)/launch/sim.xml" />
