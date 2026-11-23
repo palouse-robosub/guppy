@@ -12,6 +12,10 @@ ALl the `apriltag` node does is publish four corners and fiducial ID, it does no
 
 This node simply publishes USB webcams as a ROS image topic. This is intended as a temporary measure until the Flir cameras are mounted externally, which have their own code.
 
+## Sign Detection
+
+Uses YOLO Object Detection to recognize task symbols in the pool (currently trained for 2026 tasks). Uses localized thresholding to then find the border of these signs and determine their framespace coordinates for PnP relative positioning.
+
 ## PnP Algorithm
 
 This node uses a simple PnP approach to pose estimation from YOLO or AprilTag detections.
