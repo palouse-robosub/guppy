@@ -1,4 +1,0 @@
-uint16 id
-byte[] data
----
-uint8 written

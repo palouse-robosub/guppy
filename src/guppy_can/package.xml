@@ -2,20 +2,27 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>guppy_can</name>
-  <version>0.0.0</version>
-  <description>CAN Bus nodes and services for Guppy</description>
-  <maintainer email="asorge29@gmail.com">Andy Sorge</maintainer>
+  <version>1.0.0</version>
   <license>Apache-2.0</license>
+  <description>CAN Bus transceiver enabling communication over classic and flexible data rate protocols to and from guppy.</description>
+
+  <maintainer email="asorge29@gmail.com">Andy Sorge</maintainer>
+  <maintainer email="ryden@handsaker.org">Ryden Handsaker</maintainer>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
+  <depend>ament_index_cpp</depend>
   <depend>rclcpp</depend>
-  <depend>std_msgs</depend>
+  <depend>rclcpp_components</depend>
+  <depend>can_xml</depend>
   <depend>guppy_msgs</depend>
-  <depend>guppy_util</depend>
+  <build_depend>guppy_util</build_depend>
 
+  <test_depend>guppy_testing</test_depend>
+  <test_depend>tinyxml2</test_depend>
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
+  <test_depend>ament_cmake_gtest</test_depend>
 
   <export>
     <build_type>ament_cmake</build_type>

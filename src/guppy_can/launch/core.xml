@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
-    <node pkg="guppy_can" exec="can_rx"/>
-    <node pkg="guppy_can" exec="can_tx"/>
+    <arg name="namespace" default=""/>
+    <arg name="use_ipc" default="true"/>
+    <node_container pkg="rclcpp_components" exec="component_container" name="can_container" namespace="$(var namespace)" output="screen">
+        <composable_node pkg="can_driver" plugin="CANTransceiver" name="can_transceiver">
+            <extra_arg name="use_intra_process_comms" value="$(var use_ipc)"/>
+        </composable_node>
+    </node_container>
 </launch>

@@ -1,0 +1,5 @@
+string name
+byte[] data
+---
+uint8 written
+bool success
