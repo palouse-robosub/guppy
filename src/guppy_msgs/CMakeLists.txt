@@ -17,19 +17,17 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/ChangeState.srv"
   "msg/State.msg"
 
-  "msg/CanFrame.msg"
-  "srv/SendCan.srv"
+  "msg/CANFrame.msg"
+  "srv/SendCAN.srv"
 
   "srv/SetHoldPose.srv"
-
-  "msg/Toast.msg"
 
   "msg/CornerDetection.msg"
   "msg/CornerDetectionList.msg"
   "msg/TransformList.msg"
 
   "action/Navigate.action"
-  
+
   DEPENDENCIES builtin_interfaces
   DEPENDENCIES geometry_msgs
   DEPENDENCIES builtin_interfaces vision_msgs
