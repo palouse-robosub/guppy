@@ -13,3 +13,4 @@ src/guppy_vision @andy-sorge
 
 src/guppy_state @ryden-handsaker
 src/guppy_nav   @ryden-handsaker @guppyadrian
+src/guppy_util  @ryden-handsaker
