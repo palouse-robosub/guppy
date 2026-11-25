@@ -20,3 +20,6 @@
 [submodule "vendor/spinnaker-sdk"]
 	path = vendor/spinnaker-sdk
 	url = https://github.com/palouse-robosub/spinnaker-sdk
+[submodule "can-xml"]
+	path = vendor/can-xml
+	url = https://github.com/palouse-robosub/can-xml

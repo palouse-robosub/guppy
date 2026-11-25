@@ -13,19 +13,20 @@
       in {
         devShells.default = pkgs.mkShell {
           name = "guppy_ros";
-          packages = [
+          packages = with pkgs; [
             # non ros
-            
-            # build
-            pkgs.colcon
-            pkgs.cmake
-            pkgs.clang-tools
-            
-            # deps
-            pkgs.proxsuite
-            pkgs.nlohmann_json
 
-            (pkgs.python3.withPackages (ps: with ps; [
+            # build
+            colcon
+            cmake
+            clang-tools
+
+            # deps
+            proxsuite
+            nlohmann_json
+            tinyxml-2
+
+            (python3.withPackages (ps: with ps; [
               pygame
               pip
               pyside6
@@ -33,10 +34,10 @@
             ]))
 
             # extra
-            pkgs.fastfetch
-            pkgs.can-utils
-            
-            (with pkgs.rosPackages.jazzy; buildEnv {
+            fastfetch
+            can-utils
+
+            (with rosPackages.jazzy; buildEnv {
               # ros packages
               paths = [
                 # ros base
@@ -44,28 +45,29 @@
                 ros-base
                 rclcpp
                 rclpy
-                
+
                 # ros msgs
                 std-msgs
                 geometry-msgs
                 sensor-msgs
                 nav-msgs
-      
+
                 # rqt
                 rqt
                 rqt-common-plugins
-                
+
                 # build
                 ament-cmake
                 ament-cmake-core # vectornav_msgs
                 ament-cmake-python
                 ament-lint-auto
-                
+                ament-cmake-gtest # testing
+
                 # launch
                 launch
                 launch-ros
                 launch-xml
-                
+
                 # rviz
                 rviz2
 
@@ -75,7 +77,7 @@
 
                 # foxglove
                 foxglove-bridge
-                
+
                 # deps
                 ros2-control
                 control-toolbox
